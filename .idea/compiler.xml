@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="mahjong-scoreboard-start" />
+        <module name="mahjong-scoreboard-service" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="mahjong-scoreboard" target="18" />
+      <module name="mahjong-scoreboard-service" target="18" />
+      <module name="mahjong-scoreboard-start" target="18" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="mahjong-scoreboard-service" options="-parameters" />
+      <module name="mahjong-scoreboard-start" options="-parameters" />
+    </option>
+  </component>
+</project>
