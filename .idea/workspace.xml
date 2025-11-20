@@ -4,10 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="点">
-      <change afterPath="$PROJECT_DIR$/cch815566" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cch815566.pub" afterDir="false" />
-    </list>
+    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="点" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -89,7 +86,7 @@
       <option name="presentableId" value="Default" />
       <updated>1762736093981</updated>
       <workItem from="1762736096060" duration="2001000" />
-      <workItem from="1763493666786" duration="10133000" />
+      <workItem from="1763493666786" duration="10606000" />
     </task>
     <task id="LOCAL-00001" summary="点">
       <created>1763501104157</created>
