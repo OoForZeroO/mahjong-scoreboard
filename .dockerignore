@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Maven
+target/
+.mvn/
+
+# 文档
+docs/
+README.md
+
+# 脚本和工具
+scripts/
+tools/
+test-support/
+
+# 日志
+*.log
+log/
+
+# 临时文件
+*.tmp
+*.bak
+*.swp
+
+# 配置文件（敏感信息）
+config/
+*.properties
+*.yml
+!**/application*.yml
+!**/application*.properties
+
+# 数据库
+database/
+
+# 其他
+.DS_Store
+*.class
+

@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: mahjong-scoreboard-service-test
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mahjong_score_system_test}
+    username: ${SPRING_DATASOURCE_USERNAME:mahjong_user_test}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: update  # 测试环境可以自动更新表结构
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+
+logging:
+  level:
+    root: INFO
+    com.mahjong: DEBUG
+  file:
+    name: /app/logs/application.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# 微信小程序配置（测试环境对接体验版）
+wechat:
+  appId: ${WECHAT_APPID_TEST:${WECHAT_APPID}}
+  appSecret: ${WECHAT_APPSECRET_TEST:${WECHAT_APPSECRET}}
+  qrcode:
+    page: pages/gameDetail/gameDetail
+    width: 430
+    checkPath: false
+    envVersion: trial  # 测试环境使用体验版
+
+# Actuator 配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+  health:
+    db:
+      enabled: true
+
