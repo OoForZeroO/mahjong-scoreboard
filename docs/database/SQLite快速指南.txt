@@ -1,0 +1,152 @@
+# SQLite快速入门指南
+
+## 什么是SQLite
+
+SQLite是一个轻量级的关系型数据库，它是嵌入式的，不需要单独的服务器进程，数据库本身就是一个文件。对于开发和测试来说非常方便。
+
+## 为什么选择SQLite
+
+- **无需安装**: 只需要一个可执行文件即可使用
+- **轻量级**: 整个数据库就是一个文件，方便复制和备份
+- **兼容性好**: 支持标准SQL语法
+- **适合开发测试**: 对于初期开发和概念验证非常理想
+- **资源消耗低**: 占用系统资源少
+
+## 快速开始使用SQLite
+
+### 步骤1: 下载SQLite
+
+1. 访问SQLite官方下载页面：https://www.sqlite.org/download.html
+2. 下载Windows版本的预编译二进制文件：
+   - sqlite-tools-win32-x86-*.zip (32位版本)
+   - 或 sqlite-tools-win64-x64-*.zip (64位版本)
+
+### 步骤2: 安装SQLite
+
+1. 将下载的ZIP文件解压到一个文件夹，例如：C:\SQLite
+2. 将该文件夹添加到系统PATH环境变量，或直接在该文件夹中操作
+
+### 步骤3: 创建并使用数据库
+
+```bash
+# 打开命令提示符
+cd C:\SQLite  # 如果没有添加到PATH
+
+# 创建或打开数据库文件 (data.db是数据库文件名)
+sqlite3 data.db
+
+# 创建表
+CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, email TEXT);
+
+# 插入数据
+INSERT INTO users (username, email) VALUES ('testuser', 'test@example.com');
+
+# 查询数据
+SELECT * FROM users;
+
+# 退出SQLite
+.quit
+```
+
+## SQLite基本命令
+
+```
+.databases      # 列出数据库
+.tables         # 列出所有表
+.schema         # 显示表结构
+.help           # 显示帮助信息
+.exit 或 .quit   # 退出SQLite
+```
+
+## 将Java项目连接到SQLite
+
+### 1. 在Maven中添加依赖
+
+修改 `d:\YH\java\demo\pom.xml`，添加SQLite驱动：
+
+```xml
+<dependency>
+    <groupId>org.xerial</groupId>
+    <artifactId>sqlite-jdbc</artifactId>
+    <version>3.40.0</version>
+</dependency>
+```
+
+### 2. 修改应用配置
+
+将 `application.properties` 中的数据库配置更改为SQLite：
+
+```properties
+# SQLite连接配置
+spring.datasource.url=jdbc:sqlite:data.db
+spring.datasource.driver-class-name=org.sqlite.JDBC
+spring.datasource.username=
+spring.datasource.password=
+
+# 由于SQLite不支持某些Hibernate功能
+spring.jpa.hibernate.ddl-auto=create
+spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect
+```
+
+### 3. 创建SQLite示例程序
+
+可以创建一个简单的Java程序来测试SQLite连接：
+
+```java
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.ResultSet;
+
+public class SQLiteExample {
+    public static void main(String[] args) {
+        try {
+            // 连接到SQLite数据库
+            Connection conn = DriverManager.getConnection("jdbc:sqlite:data.db");
+            
+            // 创建表
+            Statement stmt = conn.createStatement();
+            String sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)";
+            stmt.executeUpdate(sql);
+            
+            // 插入数据
+            stmt.executeUpdate("INSERT INTO users (name) VALUES ('测试用户')");
+            
+            // 查询数据
+            ResultSet rs = stmt.executeQuery("SELECT * FROM users");
+            while (rs.next()) {
+                System.out.println("ID: " + rs.getInt("id") + ", Name: " + rs.getString("name"));
+            }
+            
+            // 关闭连接
+            rs.close();
+            stmt.close();
+            conn.close();
+        } catch (Exception e) {
+            System.err.println(e.getClass().getName() + ": " + e.getMessage());
+        }
+    }
+}
+```
+
+## 注意事项
+
+1. SQLite适合开发环境和小型应用，但不推荐用于高并发的生产环境
+2. SQLite支持大多数标准SQL语法，但有一些限制
+3. 数据库文件可以直接复制作为备份
+4. 多个进程可以同时读取SQLite数据库，但写入操作会锁定整个数据库
+
+## 从SQLite迁移到MySQL
+
+当项目成熟后，可以轻松迁移到MySQL：
+1. 修改连接字符串和驱动
+2. 调整SQL语法（如有必要）
+3. 导入数据
+
+## 资源链接
+
+- SQLite官方文档: https://www.sqlite.org/docs.html
+- SQLite教程: https://www.sqlite.org/cli.html
+- SQLite JDBC驱动: https://github.com/xerial/sqlite-jdbc
+
+SQLite是开始项目开发的绝佳选择，特别是在MySQL安装遇到困难时。您可以立即开始编码，稍后再考虑迁移到更强大的数据库系统。
