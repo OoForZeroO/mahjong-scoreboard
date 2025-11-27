@@ -4,8 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="点">
+    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="启动2">
+      <change afterPath="$PROJECT_DIR$/../.dockerignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Dockerfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Jenkinsfile" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../docs/deployment/快速部署检查清单.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../docs/deployment/服务器环境搭建指南.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../docs/deployment/服务器脚本模板.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application-production.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application-testing.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../cch815566" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../cch815566.pub" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$" beforeDir="false" afterPath="$PROJECT_DIR$" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../mahjong-scoreboard-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../mahjong-scoreboard-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../mahjong-scoreboard.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../mahjong-scoreboard.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tools/archive/mj-workspace" beforeDir="false" afterPath="$PROJECT_DIR$/../tools/archive/mj-workspace" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -89,6 +104,7 @@
       <updated>1762736093981</updated>
       <workItem from="1762736096060" duration="2001000" />
       <workItem from="1763493666786" duration="14100000" />
+      <workItem from="1763648470188" duration="1571000" />
     </task>
     <task id="LOCAL-00001" summary="点">
       <created>1763501104157</created>
@@ -97,7 +113,14 @@
       <option name="project" value="LOCAL" />
       <updated>1763501104160</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="启动">
+      <created>1763648605218</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1763648605218</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -117,6 +140,8 @@
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="点" />
-    <option name="LAST_COMMIT_MESSAGE" value="点" />
+    <MESSAGE value="启动" />
+    <MESSAGE value="启动2" />
+    <option name="LAST_COMMIT_MESSAGE" value="启动2" />
   </component>
 </project>
