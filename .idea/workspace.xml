@@ -4,22 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="启动2">
-      <change afterPath="$PROJECT_DIR$/../.dockerignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../Jenkinsfile" afterDir="false" />
+    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="服务器初始化">
       <change afterPath="$PROJECT_DIR$/../docs/deployment/快速部署检查清单.md" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../docs/deployment/服务器环境搭建指南.md" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/../docs/deployment/服务器脚本模板.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application-production.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application-testing.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cch815566" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../cch815566.pub" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$" beforeDir="false" afterPath="$PROJECT_DIR$" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mahjong-scoreboard-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../mahjong-scoreboard-service/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/../mahjong-scoreboard-start/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../mahjong-scoreboard.iml" beforeDir="false" afterPath="$PROJECT_DIR$/../mahjong-scoreboard.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../docs/deployment/首次部署问题排查.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../tools/archive/mj-workspace" beforeDir="false" afterPath="$PROJECT_DIR$/../tools/archive/mj-workspace" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -52,26 +41,25 @@
     <option name="showLibraryContents" value="true" />
     <option name="showMembers" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;vcs.Git&quot;,
-    &quot;spring.configuration.checksum&quot;: &quot;86380bbe2b86e6626b5cc09f21fa4793&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "vcs.Git",
+    "spring.configuration.checksum": "86380bbe2b86e6626b5cc09f21fa4793"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Application.Mahjong Scoreboard Application">
     <configuration name="Mahjong Scoreboard Application" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="com.mahjong.start.MahjongScoreboardApplication" />
@@ -104,7 +92,7 @@
       <updated>1762736093981</updated>
       <workItem from="1762736096060" duration="2001000" />
       <workItem from="1763493666786" duration="14100000" />
-      <workItem from="1763648470188" duration="1571000" />
+      <workItem from="1763648470188" duration="1673000" />
     </task>
     <task id="LOCAL-00001" summary="点">
       <created>1763501104157</created>
@@ -120,7 +108,14 @@
       <option name="project" value="LOCAL" />
       <updated>1763648605218</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="服务器初始化">
+      <created>1764236570996</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764236570996</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -142,6 +137,7 @@
     <MESSAGE value="点" />
     <MESSAGE value="启动" />
     <MESSAGE value="启动2" />
-    <option name="LAST_COMMIT_MESSAGE" value="启动2" />
+    <MESSAGE value="服务器初始化" />
+    <option name="LAST_COMMIT_MESSAGE" value="服务器初始化" />
   </component>
 </project>
