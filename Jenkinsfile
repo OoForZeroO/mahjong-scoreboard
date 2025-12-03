@@ -4,6 +4,7 @@ pipeline {
     environment {
         PRODUCTION_DIR = '/opt/yaohufox/production'
         TESTING_DIR = '/opt/yaohufox/testing'
+        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'  // 根据实际 Java 路径调整
     }
     
     stages {
@@ -14,21 +15,18 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
+        stage('Build Application') {
             steps {
                 script {
-                    // 构建 Docker 镜像
-                    def imageTag = "mahjong-scoreboard:${BUILD_NUMBER}"
-                    sh "docker build -t ${imageTag} ."
-                    sh "docker tag ${imageTag} mahjong-scoreboard:latest"
+                    echo "开始构建应用..."
                     
-                    echo "Docker 镜像构建完成：${imageTag}"
+                    // 使用 Maven 构建应用（不构建 Docker 镜像）
+                    sh '''
+                        cd mahjong-scoreboard-start
+                        mvn clean package -DskipTests
+                    '''
                     
-                    // 如果是测试环境分支，也打标签
-                    if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'test') {
-                        sh "docker tag ${imageTag} mahjong-scoreboard:test"
-                        echo "已标记为测试环境镜像"
-                    }
+                    echo "应用构建完成"
                 }
             }
         }
@@ -45,21 +43,49 @@ pipeline {
                     dir(TESTING_DIR) {
                         echo "开始部署到测试环境..."
                         
-                        // 停止旧容器
-                        sh 'docker-compose down || true'
+                        // 停止旧应用
+                        sh '''
+                            if [ -f app.pid ]; then
+                                PID=$(cat app.pid)
+                                if ps -p $PID > /dev/null 2>&1; then
+                                    kill $PID || true
+                                    sleep 5
+                                    kill -9 $PID 2>/dev/null || true
+                                fi
+                                rm -f app.pid
+                            fi
+                        '''
                         
-                        // 确保使用最新镜像
-                        sh "docker tag mahjong-scoreboard:${BUILD_NUMBER} mahjong-scoreboard:test"
+                        // 复制新的 JAR 文件
+                        sh '''
+                            mkdir -p ${TESTING_DIR}
+                            cp ${WORKSPACE}/mahjong-scoreboard-start/target/mahjong-scoreboard-start-*.jar ${TESTING_DIR}/app.jar
+                        '''
                         
-                        // 启动新容器
-                        sh 'docker-compose up -d'
+                        // 启动新应用
+                        sh '''
+                            cd ${TESTING_DIR}
+                            nohup java -jar -Dspring.profiles.active=testing app.jar > app.log 2>&1 &
+                            echo $! > app.pid
+                        '''
                         
-                        // 等待健康检查
+                        // 等待应用启动
                         echo "等待应用启动..."
                         sh 'sleep 15'
                         
                         // 验证部署
-                        sh 'docker-compose ps'
+                        sh '''
+                            if [ -f app.pid ]; then
+                                PID=$(cat app.pid)
+                                if ps -p $PID > /dev/null 2>&1; then
+                                    echo "应用运行中，PID: $PID"
+                                else
+                                    echo "应用启动失败，查看日志："
+                                    tail -50 app.log
+                                    exit 1
+                                fi
+                            fi
+                        '''
                         
                         echo "测试环境部署完成！"
                     }
@@ -76,21 +102,49 @@ pipeline {
                     dir(PRODUCTION_DIR) {
                         echo "开始部署到生产环境..."
                         
-                        // 停止旧容器
-                        sh 'docker-compose down || true'
+                        // 停止旧应用
+                        sh '''
+                            if [ -f app.pid ]; then
+                                PID=$(cat app.pid)
+                                if ps -p $PID > /dev/null 2>&1; then
+                                    kill $PID || true
+                                    sleep 5
+                                    kill -9 $PID 2>/dev/null || true
+                                fi
+                                rm -f app.pid
+                            fi
+                        '''
                         
-                        // 确保使用最新镜像
-                        sh "docker tag mahjong-scoreboard:${BUILD_NUMBER} mahjong-scoreboard:latest"
+                        // 复制新的 JAR 文件
+                        sh '''
+                            mkdir -p ${PRODUCTION_DIR}
+                            cp ${WORKSPACE}/mahjong-scoreboard-start/target/mahjong-scoreboard-start-*.jar ${PRODUCTION_DIR}/app.jar
+                        '''
                         
-                        // 启动新容器
-                        sh 'docker-compose up -d'
+                        // 启动新应用
+                        sh '''
+                            cd ${PRODUCTION_DIR}
+                            nohup java -jar -Dspring.profiles.active=production app.jar > app.log 2>&1 &
+                            echo $! > app.pid
+                        '''
                         
-                        // 等待健康检查
+                        // 等待应用启动
                         echo "等待应用启动..."
                         sh 'sleep 15'
                         
                         // 验证部署
-                        sh 'docker-compose ps'
+                        sh '''
+                            if [ -f app.pid ]; then
+                                PID=$(cat app.pid)
+                                if ps -p $PID > /dev/null 2>&1; then
+                                    echo "应用运行中，PID: $PID"
+                                else
+                                    echo "应用启动失败，查看日志："
+                                    tail -50 app.log
+                                    exit 1
+                                fi
+                            fi
+                        '''
                         
                         echo "生产环境部署完成！"
                     }
@@ -101,12 +155,10 @@ pipeline {
     
     post {
         always {
-            // 清理旧镜像（保留最近 5 个构建）
+            // 清理旧的构建产物（保留最近 5 个）
             sh '''
-                docker images mahjong-scoreboard --format "{{.ID}} {{.Tag}}" | \
-                grep -E "^[a-f0-9]+ [0-9]+$" | \
-                tail -n +6 | awk '{print $1}' | \
-                xargs -r docker rmi 2>/dev/null || true
+                find ${PRODUCTION_DIR} -name "app-*.jar" -type f -mtime +5 -delete 2>/dev/null || true
+                find ${TESTING_DIR} -name "app-*.jar" -type f -mtime +5 -delete 2>/dev/null || true
             '''
         }
         success {
