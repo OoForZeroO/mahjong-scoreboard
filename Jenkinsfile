@@ -4,7 +4,7 @@ pipeline {
     environment {
         PRODUCTION_DIR = '/opt/yaohufox/production'
         TESTING_DIR = '/opt/yaohufox/testing'
-        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'  // 根据实际 Java 路径调整
+        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'  // 根据实际 Java 路径调整3
     }
     
     stages {
