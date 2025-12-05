@@ -11,7 +11,7 @@ spring:
       connection-timeout: 30000
   jpa:
     hibernate:
-      ddl-auto: validate  # 生产环境使用 validate，不自动创建表
+      ddl-auto: update  # 临时使用 update 以自动修复表结构，修复后应改回 validate
     show-sql: false
     properties:
       hibernate:
