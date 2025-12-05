@@ -188,10 +188,11 @@ pipeline {
                                 while IFS='=' read -r key value; do
                                     # 跳过注释和空行
                                     case "$key" in
-                                        \#*|'') continue ;;
+                                        '#'*) continue ;;
+                                        '') continue ;;
                                     esac
                                     # 移除引号
-                                    value=$(echo "$value" | sed "s/^['\"]//; s/['\"]$//")
+                                    value=$(echo "$value" | sed "s/^['\\\"]//; s/['\\\"]$//")
                                     export "$key=$value"
                                 done < "$ENV_FILE"
                             }
@@ -394,10 +395,11 @@ pipeline {
                                 while IFS='=' read -r key value; do
                                     # 跳过注释和空行
                                     case "$key" in
-                                        \#*|'') continue ;;
+                                        '#'*) continue ;;
+                                        '') continue ;;
                                     esac
                                     # 移除引号
-                                    value=$(echo "$value" | sed "s/^['\"]//; s/['\"]$//")
+                                    value=$(echo "$value" | sed "s/^['\\\"]//; s/['\\\"]$//")
                                     export "$key=$value"
                                 done < "$ENV_FILE"
                             }
