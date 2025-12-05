@@ -3,7 +3,7 @@ spring:
     name: mahjong-scoreboard-service-test
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mahjong_score_system_test}
-    username: ${SPRING_DATASOURCE_USERNAME:mahjong_user_test}
+    username: ${SPRING_DATASOURCE_USERNAME:yaohu}
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:
       maximum-pool-size: 5

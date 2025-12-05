@@ -175,11 +175,47 @@ pipeline {
                     // 启动新应用
                     sh '''
                         cd ${TESTING_DIR}
-                        # 显式设置端口，确保使用正确的端口
+                        
+                        # 加载环境变量（从 .env 文件或系统环境变量）
+                        if [ -f .env ]; then
+                            echo "从 .env 文件加载环境变量..."
+                            set -a
+                            source .env
+                            set +a
+                        else
+                            echo "⚠️  .env 文件不存在，使用系统环境变量或默认值"
+                        fi
+                        
+                        # 显式设置端口
                         export SERVER_PORT=${TESTING_PORT}
+                        
+                        # 设置数据库连接（如果环境变量未设置，使用默认值）
+                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5433/mahjong_score_system_test}
+                        export SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-yaohu}
+                        
+                        # 数据库密码必须设置（从 POSTGRES_PASSWORD 或 SPRING_DATASOURCE_PASSWORD）
+                        if [ -z "$SPRING_DATASOURCE_PASSWORD" ] && [ -n "$POSTGRES_PASSWORD" ]; then
+                            export SPRING_DATASOURCE_PASSWORD="$POSTGRES_PASSWORD"
+                        fi
+                        
+                        # 检查必要的环境变量
+                        if [ -z "$SPRING_DATASOURCE_PASSWORD" ]; then
+                            echo "❌ 错误: SPRING_DATASOURCE_PASSWORD 未设置"
+                            echo "请设置环境变量或创建 .env 文件"
+                            exit 1
+                        fi
+                        
+                        # 设置微信配置（如果存在）
+                        export WECHAT_APPID=${WECHAT_APPID_TEST:-${WECHAT_APPID:-}}
+                        export WECHAT_APPSECRET=${WECHAT_APPSECRET_TEST:-${WECHAT_APPSECRET:-}}
+                        
+                        echo "启动应用，端口: ${TESTING_PORT}"
+                        echo "数据库: ${SPRING_DATASOURCE_URL}"
+                        echo "数据库用户: ${SPRING_DATASOURCE_USERNAME}"
+                        
                         nohup java -jar -Dspring.profiles.active=testing -Dserver.port=${TESTING_PORT} app.jar > app.log 2>&1 &
                         echo $! > app.pid
-                        echo "启动应用，端口: ${TESTING_PORT}, PID: $(cat app.pid)"
+                        echo "应用已启动，PID: $(cat app.pid)"
                     '''
                     
                     // 等待应用启动
@@ -332,11 +368,47 @@ pipeline {
                     // 启动新应用
                     sh '''
                         cd ${PRODUCTION_DIR}
-                        # 显式设置端口，确保使用正确的端口
+                        
+                        # 加载环境变量（从 .env 文件或系统环境变量）
+                        if [ -f .env ]; then
+                            echo "从 .env 文件加载环境变量..."
+                            set -a
+                            source .env
+                            set +a
+                        else
+                            echo "⚠️  .env 文件不存在，使用系统环境变量或默认值"
+                        fi
+                        
+                        # 显式设置端口
                         export SERVER_PORT=${PRODUCTION_PORT}
+                        
+                        # 设置数据库连接（如果环境变量未设置，使用默认值）
+                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5432/mahjong_score_system}
+                        export SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-yaohu}
+                        
+                        # 数据库密码必须设置（从 POSTGRES_PASSWORD 或 SPRING_DATASOURCE_PASSWORD）
+                        if [ -z "$SPRING_DATASOURCE_PASSWORD" ] && [ -n "$POSTGRES_PASSWORD" ]; then
+                            export SPRING_DATASOURCE_PASSWORD="$POSTGRES_PASSWORD"
+                        fi
+                        
+                        # 检查必要的环境变量
+                        if [ -z "$SPRING_DATASOURCE_PASSWORD" ]; then
+                            echo "❌ 错误: SPRING_DATASOURCE_PASSWORD 未设置"
+                            echo "请设置环境变量或创建 .env 文件"
+                            exit 1
+                        fi
+                        
+                        # 设置微信配置（如果存在）
+                        export WECHAT_APPID=${WECHAT_APPID:-}
+                        export WECHAT_APPSECRET=${WECHAT_APPSECRET:-}
+                        
+                        echo "启动应用，端口: ${PRODUCTION_PORT}"
+                        echo "数据库: ${SPRING_DATASOURCE_URL}"
+                        echo "数据库用户: ${SPRING_DATASOURCE_USERNAME}"
+                        
                         nohup java -jar -Dspring.profiles.active=production -Dserver.port=${PRODUCTION_PORT} app.jar > app.log 2>&1 &
                         echo $! > app.pid
-                        echo "启动应用，端口: ${PRODUCTION_PORT}, PID: $(cat app.pid)"
+                        echo "应用已启动，PID: $(cat app.pid)"
                     '''
                     
                     // 等待应用启动
