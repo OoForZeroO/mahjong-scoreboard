@@ -111,145 +111,142 @@ pipeline {
                     def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '') ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
                     echo "当前分支: ${currentBranch}"
                     echo "开始部署到测试环境..."
+                        
+                    // 停止旧应用
+                    sh '''
+                        if [ -f ${TESTING_DIR}/app.pid ]; then
+                            PID=$(cat ${TESTING_DIR}/app.pid)
+                            if ps -p $PID > /dev/null 2>&1; then
+                                kill $PID || true
+                                sleep 5
+                                kill -9 $PID 2>/dev/null || true
+                            fi
+                            rm -f ${TESTING_DIR}/app.pid
+                        fi
+                    '''
                     
-                    dir(TESTING_DIR) {
+                    // 复制新的 JAR 文件
+                    sh '''
+                        echo "开始复制 JAR 文件到测试环境..."
+                        mkdir -p ${TESTING_DIR}
                         
-                        // 停止旧应用
-                        sh '''
-                            if [ -f app.pid ]; then
-                                PID=$(cat app.pid)
-                                if ps -p $PID > /dev/null 2>&1; then
-                                    kill $PID || true
-                                    sleep 5
-                                    kill -9 $PID 2>/dev/null || true
-                                fi
-                                rm -f app.pid
-                            fi
-                        '''
+                        # 显示工作空间信息
+                        echo "工作空间: ${WORKSPACE}"
+                        echo "目标目录: ${TESTING_DIR}"
                         
-                        // 复制新的 JAR 文件
-                        sh '''
-                            echo "开始复制 JAR 文件到测试环境..."
-                            mkdir -p ${TESTING_DIR}
-                            
-                            # 显示工作空间信息
-                            echo "工作空间: ${WORKSPACE}"
-                            echo "目标目录: ${TESTING_DIR}"
-                            
-                            # 查找 JAR 文件（排除 sources 和 javadoc）
-                            echo "查找 JAR 文件..."
-                            JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
-                            
-                            if [ -z "$JAR_FILE" ]; then
-                                echo "❌ 错误: 找不到 JAR 文件"
-                                echo "检查构建目录："
-                                ls -la ${WORKSPACE}/mahjong-scoreboard-start/target/ 2>/dev/null || echo "target 目录不存在"
-                                echo ""
-                                echo "查找所有 JAR 文件："
-                                find ${WORKSPACE} -name "*.jar" -type f 2>/dev/null | head -10
-                                exit 1
-                            fi
-                            
-                            if [ ! -f "$JAR_FILE" ]; then
-                                echo "❌ 错误: JAR 文件不存在: $JAR_FILE"
-                                exit 1
-                            fi
-                            
-                            echo "✅ 找到 JAR 文件: $JAR_FILE"
-                            ls -lh "$JAR_FILE"
-                            
-                            # 复制文件
-                            echo "复制 JAR 文件: $JAR_FILE -> ${TESTING_DIR}/app.jar"
-                            cp "$JAR_FILE" ${TESTING_DIR}/app.jar
-                            
-                            # 验证复制是否成功
-                            if [ ! -f "${TESTING_DIR}/app.jar" ]; then
-                                echo "❌ 错误: 复制失败，目标文件不存在"
-                                echo "检查目标目录权限："
-                                ls -ld ${TESTING_DIR}
-                                exit 1
-                            fi
-                            
-                            echo "✅ JAR 文件复制成功"
-                            ls -lh ${TESTING_DIR}/app.jar
-                        '''
+                        # 查找 JAR 文件（排除 sources 和 javadoc）
+                        echo "查找 JAR 文件..."
+                        JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
                         
-                        // 启动新应用
-                        sh '''
-                            cd ${TESTING_DIR}
-                            # 显式设置端口，确保使用正确的端口
-                            export SERVER_PORT=${TESTING_PORT}
-                            nohup java -jar -Dspring.profiles.active=testing -Dserver.port=${TESTING_PORT} app.jar > app.log 2>&1 &
-                            echo $! > app.pid
-                            echo "启动应用，端口: ${TESTING_PORT}, PID: $(cat app.pid)"
-                        '''
+                        if [ -z "$JAR_FILE" ]; then
+                            echo "❌ 错误: 找不到 JAR 文件"
+                            echo "检查构建目录："
+                            ls -la ${WORKSPACE}/mahjong-scoreboard-start/target/ 2>/dev/null || echo "target 目录不存在"
+                            echo ""
+                            echo "查找所有 JAR 文件："
+                            find ${WORKSPACE} -name "*.jar" -type f 2>/dev/null | head -10
+                            exit 1
+                        fi
                         
-                        // 等待应用启动
-                        echo "等待应用启动..."
-                        sh 'sleep 15'
+                        if [ ! -f "$JAR_FILE" ]; then
+                            echo "❌ 错误: JAR 文件不存在: $JAR_FILE"
+                            exit 1
+                        fi
                         
-                        // 验证部署
-                        sh '''
-                            # 1. 检查进程是否存在
-                            if [ -f app.pid ]; then
-                                PID=$(cat app.pid)
-                                if ps -p $PID > /dev/null 2>&1; then
-                                    echo "✅ 应用进程运行中，PID: $PID"
-                                else
-                                    echo "❌ 应用进程不存在，查看日志："
-                                    tail -50 app.log
-                                    exit 1
-                                fi
+                        echo "✅ 找到 JAR 文件: $JAR_FILE"
+                        ls -lh "$JAR_FILE"
+                        
+                        # 复制文件
+                        echo "复制 JAR 文件: $JAR_FILE -> ${TESTING_DIR}/app.jar"
+                        cp "$JAR_FILE" ${TESTING_DIR}/app.jar
+                        
+                        # 验证复制是否成功
+                        if [ ! -f "${TESTING_DIR}/app.jar" ]; then
+                            echo "❌ 错误: 复制失败，目标文件不存在"
+                            echo "检查目标目录权限："
+                            ls -ld ${TESTING_DIR}
+                            exit 1
+                        fi
+                        
+                        echo "✅ JAR 文件复制成功"
+                        ls -lh ${TESTING_DIR}/app.jar
+                    '''
+                    
+                    // 启动新应用
+                    sh '''
+                        cd ${TESTING_DIR}
+                        # 显式设置端口，确保使用正确的端口
+                        export SERVER_PORT=${TESTING_PORT}
+                        nohup java -jar -Dspring.profiles.active=testing -Dserver.port=${TESTING_PORT} app.jar > app.log 2>&1 &
+                        echo $! > app.pid
+                        echo "启动应用，端口: ${TESTING_PORT}, PID: $(cat app.pid)"
+                    '''
+                    
+                    // 等待应用启动
+                    echo "等待应用启动..."
+                    sh 'sleep 15'
+                    
+                    // 验证部署
+                    sh '''
+                        # 1. 检查进程是否存在
+                        if [ -f ${TESTING_DIR}/app.pid ]; then
+                            PID=$(cat ${TESTING_DIR}/app.pid)
+                            if ps -p $PID > /dev/null 2>&1; then
+                                echo "✅ 应用进程运行中，PID: $PID"
                             else
-                                echo "❌ PID 文件不存在，查看日志："
-                                tail -50 app.log
+                                echo "❌ 应用进程不存在，查看日志："
+                                tail -50 ${TESTING_DIR}/app.log
                                 exit 1
                             fi
-                            
-                            # 2. 检查端口是否监听
-                            APP_PORT=${TESTING_PORT}
-                            if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
-                                echo "✅ 端口 $APP_PORT 正在监听"
-                            else
-                                echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
-                            fi
-                            
-                            # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
-                            echo "检查应用健康状态..."
-                            MAX_RETRIES=5
-                            RETRY_COUNT=0
-                            HEALTH_CHECK_SUCCESS=false
-                            
-                            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-                                sleep 3
-                                RETRY_COUNT=$((RETRY_COUNT + 1))
-                                echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
-                                
-                                # 尝试访问健康检查端点
-                                if curl -f -s http://localhost:${TESTING_PORT}/actuator/health > /dev/null 2>&1; then
-                                    echo "✅ 健康检查通过"
-                                    HEALTH_CHECK_SUCCESS=true
-                                    break
-                                elif curl -f -s http://localhost:${TESTING_PORT}/api/test/hello > /dev/null 2>&1; then
-                                    echo "✅ 测试接口可访问"
-                                    HEALTH_CHECK_SUCCESS=true
-                                    break
-                                fi
-                            done
-                            
-                            if [ "$HEALTH_CHECK_SUCCESS" != "true" ]; then
-                                echo "❌ 健康检查失败，应用可能未完全启动"
-                                echo "查看应用日志："
-                                tail -100 app.log
-                                echo ""
-                                echo "检查端口监听状态："
-                                netstat -tln 2>/dev/null | grep ${TESTING_PORT} || ss -tln 2>/dev/null | grep ${TESTING_PORT} || echo "端口 ${TESTING_PORT} 未监听"
-                                exit 1
-                            fi
-                        '''
+                        else
+                            echo "❌ PID 文件不存在，查看日志："
+                            tail -50 ${TESTING_DIR}/app.log
+                            exit 1
+                        fi
                         
-                        echo "测试环境部署完成！"
-                    }
+                        # 2. 检查端口是否监听
+                        APP_PORT=${TESTING_PORT}
+                        if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                            echo "✅ 端口 $APP_PORT 正在监听"
+                        else
+                            echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
+                        fi
+                        
+                        # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
+                        echo "检查应用健康状态..."
+                        MAX_RETRIES=5
+                        RETRY_COUNT=0
+                        HEALTH_CHECK_SUCCESS=false
+                        
+                        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                            sleep 3
+                            RETRY_COUNT=$((RETRY_COUNT + 1))
+                            echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
+                            
+                            # 尝试访问健康检查端点
+                            if curl -f -s http://localhost:${TESTING_PORT}/actuator/health > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif curl -f -s http://localhost:${TESTING_PORT}/api/test/hello > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            fi
+                        done
+                        
+                        if [ "$HEALTH_CHECK_SUCCESS" != "true" ]; then
+                            echo "❌ 健康检查失败，应用可能未完全启动"
+                            echo "查看应用日志："
+                            tail -100 ${TESTING_DIR}/app.log
+                            echo ""
+                            echo "检查端口监听状态："
+                            netstat -tln 2>/dev/null | grep ${TESTING_PORT} || ss -tln 2>/dev/null | grep ${TESTING_PORT} || echo "端口 ${TESTING_PORT} 未监听"
+                            exit 1
+                        fi
+                    '''
+                    
+                    echo "测试环境部署完成！"
                 }
             }
         }
@@ -272,144 +269,141 @@ pipeline {
                     echo "当前分支: ${currentBranch}"
                     echo "开始部署到生产环境..."
                     
-                    dir(PRODUCTION_DIR) {
-                        
-                        // 停止旧应用
-                        sh '''
-                            if [ -f app.pid ]; then
-                                PID=$(cat app.pid)
-                                if ps -p $PID > /dev/null 2>&1; then
-                                    kill $PID || true
-                                    sleep 5
-                                    kill -9 $PID 2>/dev/null || true
-                                fi
-                                rm -f app.pid
+                    // 停止旧应用
+                    sh '''
+                        if [ -f ${PRODUCTION_DIR}/app.pid ]; then
+                            PID=$(cat ${PRODUCTION_DIR}/app.pid)
+                            if ps -p $PID > /dev/null 2>&1; then
+                                kill $PID || true
+                                sleep 5
+                                kill -9 $PID 2>/dev/null || true
                             fi
-                        '''
+                            rm -f ${PRODUCTION_DIR}/app.pid
+                        fi
+                    '''
+                    
+                    // 复制新的 JAR 文件
+                    sh '''
+                        echo "开始复制 JAR 文件到生产环境..."
+                        mkdir -p ${PRODUCTION_DIR}
                         
-                        // 复制新的 JAR 文件
-                        sh '''
-                            echo "开始复制 JAR 文件到生产环境..."
-                            mkdir -p ${PRODUCTION_DIR}
-                            
-                            # 显示工作空间信息
-                            echo "工作空间: ${WORKSPACE}"
-                            echo "目标目录: ${PRODUCTION_DIR}"
-                            
-                            # 查找 JAR 文件（排除 sources 和 javadoc）
-                            echo "查找 JAR 文件..."
-                            JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
-                            
-                            if [ -z "$JAR_FILE" ]; then
-                                echo "❌ 错误: 找不到 JAR 文件"
-                                echo "检查构建目录："
-                                ls -la ${WORKSPACE}/mahjong-scoreboard-start/target/ 2>/dev/null || echo "target 目录不存在"
-                                echo ""
-                                echo "查找所有 JAR 文件："
-                                find ${WORKSPACE} -name "*.jar" -type f 2>/dev/null | head -10
-                                exit 1
-                            fi
-                            
-                            if [ ! -f "$JAR_FILE" ]; then
-                                echo "❌ 错误: JAR 文件不存在: $JAR_FILE"
-                                exit 1
-                            fi
-                            
-                            echo "✅ 找到 JAR 文件: $JAR_FILE"
-                            ls -lh "$JAR_FILE"
-                            
-                            # 复制文件
-                            echo "复制 JAR 文件: $JAR_FILE -> ${PRODUCTION_DIR}/app.jar"
-                            cp "$JAR_FILE" ${PRODUCTION_DIR}/app.jar
-                            
-                            # 验证复制是否成功
-                            if [ ! -f "${PRODUCTION_DIR}/app.jar" ]; then
-                                echo "❌ 错误: 复制失败，目标文件不存在"
-                                echo "检查目标目录权限："
-                                ls -ld ${PRODUCTION_DIR}
-                                exit 1
-                            fi
-                            
-                            echo "✅ JAR 文件复制成功"
-                            ls -lh ${PRODUCTION_DIR}/app.jar
-                        '''
+                        # 显示工作空间信息
+                        echo "工作空间: ${WORKSPACE}"
+                        echo "目标目录: ${PRODUCTION_DIR}"
                         
-                        // 启动新应用
-                        sh '''
-                            cd ${PRODUCTION_DIR}
-                            # 显式设置端口，确保使用正确的端口
-                            export SERVER_PORT=${PRODUCTION_PORT}
-                            nohup java -jar -Dspring.profiles.active=production -Dserver.port=${PRODUCTION_PORT} app.jar > app.log 2>&1 &
-                            echo $! > app.pid
-                            echo "启动应用，端口: ${PRODUCTION_PORT}, PID: $(cat app.pid)"
-                        '''
+                        # 查找 JAR 文件（排除 sources 和 javadoc）
+                        echo "查找 JAR 文件..."
+                        JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
                         
-                        // 等待应用启动
-                        echo "等待应用启动..."
-                        sh 'sleep 15'
+                        if [ -z "$JAR_FILE" ]; then
+                            echo "❌ 错误: 找不到 JAR 文件"
+                            echo "检查构建目录："
+                            ls -la ${WORKSPACE}/mahjong-scoreboard-start/target/ 2>/dev/null || echo "target 目录不存在"
+                            echo ""
+                            echo "查找所有 JAR 文件："
+                            find ${WORKSPACE} -name "*.jar" -type f 2>/dev/null | head -10
+                            exit 1
+                        fi
                         
-                        // 验证部署
-                        sh '''
-                            # 1. 检查进程是否存在
-                            if [ -f app.pid ]; then
-                                PID=$(cat app.pid)
-                                if ps -p $PID > /dev/null 2>&1; then
-                                    echo "✅ 应用进程运行中，PID: $PID"
-                                else
-                                    echo "❌ 应用进程不存在，查看日志："
-                                    tail -50 app.log
-                                    exit 1
-                                fi
+                        if [ ! -f "$JAR_FILE" ]; then
+                            echo "❌ 错误: JAR 文件不存在: $JAR_FILE"
+                            exit 1
+                        fi
+                        
+                        echo "✅ 找到 JAR 文件: $JAR_FILE"
+                        ls -lh "$JAR_FILE"
+                        
+                        # 复制文件
+                        echo "复制 JAR 文件: $JAR_FILE -> ${PRODUCTION_DIR}/app.jar"
+                        cp "$JAR_FILE" ${PRODUCTION_DIR}/app.jar
+                        
+                        # 验证复制是否成功
+                        if [ ! -f "${PRODUCTION_DIR}/app.jar" ]; then
+                            echo "❌ 错误: 复制失败，目标文件不存在"
+                            echo "检查目标目录权限："
+                            ls -ld ${PRODUCTION_DIR}
+                            exit 1
+                        fi
+                        
+                        echo "✅ JAR 文件复制成功"
+                        ls -lh ${PRODUCTION_DIR}/app.jar
+                    '''
+                    
+                    // 启动新应用
+                    sh '''
+                        cd ${PRODUCTION_DIR}
+                        # 显式设置端口，确保使用正确的端口
+                        export SERVER_PORT=${PRODUCTION_PORT}
+                        nohup java -jar -Dspring.profiles.active=production -Dserver.port=${PRODUCTION_PORT} app.jar > app.log 2>&1 &
+                        echo $! > app.pid
+                        echo "启动应用，端口: ${PRODUCTION_PORT}, PID: $(cat app.pid)"
+                    '''
+                    
+                    // 等待应用启动
+                    echo "等待应用启动..."
+                    sh 'sleep 15'
+                    
+                    // 验证部署
+                    sh '''
+                        # 1. 检查进程是否存在
+                        if [ -f ${PRODUCTION_DIR}/app.pid ]; then
+                            PID=$(cat ${PRODUCTION_DIR}/app.pid)
+                            if ps -p $PID > /dev/null 2>&1; then
+                                echo "✅ 应用进程运行中，PID: $PID"
                             else
-                                echo "❌ PID 文件不存在，查看日志："
-                                tail -50 app.log
+                                echo "❌ 应用进程不存在，查看日志："
+                                tail -50 ${PRODUCTION_DIR}/app.log
                                 exit 1
                             fi
-                            
-                            # 2. 检查端口是否监听
-                            APP_PORT=${PRODUCTION_PORT}
-                            if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
-                                echo "✅ 端口 $APP_PORT 正在监听"
-                            else
-                                echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
-                            fi
-                            
-                            # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
-                            echo "检查应用健康状态..."
-                            MAX_RETRIES=5
-                            RETRY_COUNT=0
-                            HEALTH_CHECK_SUCCESS=false
-                            
-                            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-                                sleep 3
-                                RETRY_COUNT=$((RETRY_COUNT + 1))
-                                echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
-                                
-                                # 尝试访问健康检查端点
-                                if curl -f -s http://localhost:${PRODUCTION_PORT}/actuator/health > /dev/null 2>&1; then
-                                    echo "✅ 健康检查通过"
-                                    HEALTH_CHECK_SUCCESS=true
-                                    break
-                                elif curl -f -s http://localhost:${PRODUCTION_PORT}/api/test/hello > /dev/null 2>&1; then
-                                    echo "✅ 测试接口可访问"
-                                    HEALTH_CHECK_SUCCESS=true
-                                    break
-                                fi
-                            done
-                            
-                            if [ "$HEALTH_CHECK_SUCCESS" != "true" ]; then
-                                echo "❌ 健康检查失败，应用可能未完全启动"
-                                echo "查看应用日志："
-                                tail -100 app.log
-                                echo ""
-                                echo "检查端口监听状态："
-                                netstat -tln 2>/dev/null | grep ${PRODUCTION_PORT} || ss -tln 2>/dev/null | grep ${PRODUCTION_PORT} || echo "端口 ${PRODUCTION_PORT} 未监听"
-                                exit 1
-                            fi
-                        '''
+                        else
+                            echo "❌ PID 文件不存在，查看日志："
+                            tail -50 ${PRODUCTION_DIR}/app.log
+                            exit 1
+                        fi
                         
-                        echo "生产环境部署完成！"
-                    }
+                        # 2. 检查端口是否监听
+                        APP_PORT=${PRODUCTION_PORT}
+                        if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                            echo "✅ 端口 $APP_PORT 正在监听"
+                        else
+                            echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
+                        fi
+                        
+                        # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
+                        echo "检查应用健康状态..."
+                        MAX_RETRIES=5
+                        RETRY_COUNT=0
+                        HEALTH_CHECK_SUCCESS=false
+                        
+                        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                            sleep 3
+                            RETRY_COUNT=$((RETRY_COUNT + 1))
+                            echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
+                            
+                            # 尝试访问健康检查端点
+                            if curl -f -s http://localhost:${PRODUCTION_PORT}/actuator/health > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif curl -f -s http://localhost:${PRODUCTION_PORT}/api/test/hello > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            fi
+                        done
+                        
+                        if [ "$HEALTH_CHECK_SUCCESS" != "true" ]; then
+                            echo "❌ 健康检查失败，应用可能未完全启动"
+                            echo "查看应用日志："
+                            tail -100 ${PRODUCTION_DIR}/app.log
+                            echo ""
+                            echo "检查端口监听状态："
+                            netstat -tln 2>/dev/null | grep ${PRODUCTION_PORT} || ss -tln 2>/dev/null | grep ${PRODUCTION_PORT} || echo "端口 ${PRODUCTION_PORT} 未监听"
+                            exit 1
+                        fi
+                    '''
+                    
+                    echo "生产环境部署完成！"
                 }
             }
         }
