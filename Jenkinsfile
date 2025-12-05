@@ -4,7 +4,9 @@ pipeline {
     environment {
         PRODUCTION_DIR = '/opt/yaohufox/production'
         TESTING_DIR = '/opt/yaohufox/testing'
-        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'  // 根据实际 Java 路径调整3
+        PRODUCTION_PORT = '8081'  // 生产环境端口
+        TESTING_PORT = '8082'     // 测试环境端口
+        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'  // 根据实际 Java 路径调整
     }
     
     stages {
@@ -129,15 +131,61 @@ pipeline {
                         
                         // 验证部署
                         sh '''
+                            # 1. 检查进程是否存在
                             if [ -f app.pid ]; then
                                 PID=$(cat app.pid)
                                 if ps -p $PID > /dev/null 2>&1; then
-                                    echo "应用运行中，PID: $PID"
+                                    echo "✅ 应用进程运行中，PID: $PID"
                                 else
-                                    echo "应用启动失败，查看日志："
+                                    echo "❌ 应用进程不存在，查看日志："
                                     tail -50 app.log
                                     exit 1
                                 fi
+                            else
+                                echo "❌ PID 文件不存在，查看日志："
+                                tail -50 app.log
+                                exit 1
+                            fi
+                            
+                            # 2. 检查端口是否监听
+                            APP_PORT=${TESTING_PORT}
+                            if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                                echo "✅ 端口 $APP_PORT 正在监听"
+                            else
+                                echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
+                            fi
+                            
+                            # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
+                            echo "检查应用健康状态..."
+                            MAX_RETRIES=5
+                            RETRY_COUNT=0
+                            HEALTH_CHECK_SUCCESS=false
+                            
+                            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                                sleep 3
+                                RETRY_COUNT=$((RETRY_COUNT + 1))
+                                echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
+                                
+                                # 尝试访问健康检查端点
+                                if curl -f -s http://localhost:${TESTING_PORT}/actuator/health > /dev/null 2>&1; then
+                                    echo "✅ 健康检查通过"
+                                    HEALTH_CHECK_SUCCESS=true
+                                    break
+                                elif curl -f -s http://localhost:${TESTING_PORT}/api/test/hello > /dev/null 2>&1; then
+                                    echo "✅ 测试接口可访问"
+                                    HEALTH_CHECK_SUCCESS=true
+                                    break
+                                fi
+                            done
+                            
+                            if [ "$HEALTH_CHECK_SUCCESS" != "true" ]; then
+                                echo "❌ 健康检查失败，应用可能未完全启动"
+                                echo "查看应用日志："
+                                tail -100 app.log
+                                echo ""
+                                echo "检查端口监听状态："
+                                netstat -tln 2>/dev/null | grep ${TESTING_PORT} || ss -tln 2>/dev/null | grep ${TESTING_PORT} || echo "端口 ${TESTING_PORT} 未监听"
+                                exit 1
                             fi
                         '''
                         
@@ -195,15 +243,61 @@ pipeline {
                         
                         // 验证部署
                         sh '''
+                            # 1. 检查进程是否存在
                             if [ -f app.pid ]; then
                                 PID=$(cat app.pid)
                                 if ps -p $PID > /dev/null 2>&1; then
-                                    echo "应用运行中，PID: $PID"
+                                    echo "✅ 应用进程运行中，PID: $PID"
                                 else
-                                    echo "应用启动失败，查看日志："
+                                    echo "❌ 应用进程不存在，查看日志："
                                     tail -50 app.log
                                     exit 1
                                 fi
+                            else
+                                echo "❌ PID 文件不存在，查看日志："
+                                tail -50 app.log
+                                exit 1
+                            fi
+                            
+                            # 2. 检查端口是否监听
+                            APP_PORT=${PRODUCTION_PORT}
+                            if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                                echo "✅ 端口 $APP_PORT 正在监听"
+                            else
+                                echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
+                            fi
+                            
+                            # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
+                            echo "检查应用健康状态..."
+                            MAX_RETRIES=5
+                            RETRY_COUNT=0
+                            HEALTH_CHECK_SUCCESS=false
+                            
+                            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+                                sleep 3
+                                RETRY_COUNT=$((RETRY_COUNT + 1))
+                                echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
+                                
+                                # 尝试访问健康检查端点
+                                if curl -f -s http://localhost:${PRODUCTION_PORT}/actuator/health > /dev/null 2>&1; then
+                                    echo "✅ 健康检查通过"
+                                    HEALTH_CHECK_SUCCESS=true
+                                    break
+                                elif curl -f -s http://localhost:${PRODUCTION_PORT}/api/test/hello > /dev/null 2>&1; then
+                                    echo "✅ 测试接口可访问"
+                                    HEALTH_CHECK_SUCCESS=true
+                                    break
+                                fi
+                            done
+                            
+                            if [ "$HEALTH_CHECK_SUCCESS" != "true" ]; then
+                                echo "❌ 健康检查失败，应用可能未完全启动"
+                                echo "查看应用日志："
+                                tail -100 app.log
+                                echo ""
+                                echo "检查端口监听状态："
+                                netstat -tln 2>/dev/null | grep ${PRODUCTION_PORT} || ss -tln 2>/dev/null | grep ${PRODUCTION_PORT} || echo "端口 ${PRODUCTION_PORT} 未监听"
+                                exit 1
                             fi
                         '''
                         
