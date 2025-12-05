@@ -56,9 +56,21 @@ pipeline {
                         # 设置 PATH
                         export PATH="$JAVA_HOME/bin:$PATH"
                         
-                        # 进入项目目录并构建
-                        cd mahjong-scoreboard-start
+                        # 构建整个多模块项目（从根目录构建，确保所有依赖都被构建）
+                        echo "构建整个项目（多模块）..."
                         mvn clean package -DskipTests
+                        
+                        # 验证构建产物
+                        JAR_FILE=$(find mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
+                        if [ -z "$JAR_FILE" ] || [ ! -f "$JAR_FILE" ]; then
+                            echo "错误: JAR 文件未找到，构建可能失败"
+                            echo "检查 target 目录："
+                            ls -la mahjong-scoreboard-start/target/ || true
+                            exit 1
+                        fi
+                        
+                        echo "构建成功，JAR 文件位置："
+                        ls -lh "$JAR_FILE"
                     '''
                     
                     echo "应用构建完成"
@@ -94,7 +106,14 @@ pipeline {
                         // 复制新的 JAR 文件
                         sh '''
                             mkdir -p ${TESTING_DIR}
-                            cp ${WORKSPACE}/mahjong-scoreboard-start/target/mahjong-scoreboard-start-*.jar ${TESTING_DIR}/app.jar
+                            # 查找 JAR 文件（排除 sources 和 javadoc）
+                            JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
+                            if [ -z "$JAR_FILE" ] || [ ! -f "$JAR_FILE" ]; then
+                                echo "错误: 找不到 JAR 文件"
+                                exit 1
+                            fi
+                            echo "复制 JAR 文件: $JAR_FILE -> ${TESTING_DIR}/app.jar"
+                            cp "$JAR_FILE" ${TESTING_DIR}/app.jar
                         '''
                         
                         // 启动新应用
@@ -153,7 +172,14 @@ pipeline {
                         // 复制新的 JAR 文件
                         sh '''
                             mkdir -p ${PRODUCTION_DIR}
-                            cp ${WORKSPACE}/mahjong-scoreboard-start/target/mahjong-scoreboard-start-*.jar ${PRODUCTION_DIR}/app.jar
+                            # 查找 JAR 文件（排除 sources 和 javadoc）
+                            JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
+                            if [ -z "$JAR_FILE" ] || [ ! -f "$JAR_FILE" ]; then
+                                echo "错误: 找不到 JAR 文件"
+                                exit 1
+                            fi
+                            echo "复制 JAR 文件: $JAR_FILE -> ${PRODUCTION_DIR}/app.jar"
+                            cp "$JAR_FILE" ${PRODUCTION_DIR}/app.jar
                         '''
                         
                         // 启动新应用
