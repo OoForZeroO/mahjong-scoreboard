@@ -180,7 +180,8 @@ pipeline {
                         if [ -f .env ]; then
                             echo "从 .env 文件加载环境变量..."
                             set -a
-                            source .env
+                            # 使用 . 代替 source（兼容 sh）
+                            . .env
                             set +a
                         else
                             echo "⚠️  .env 文件不存在，使用系统环境变量或默认值"
@@ -373,7 +374,8 @@ pipeline {
                         if [ -f .env ]; then
                             echo "从 .env 文件加载环境变量..."
                             set -a
-                            source .env
+                            # 使用 . 代替 source（兼容 sh）
+                            . .env
                             set +a
                         else
                             echo "⚠️  .env 文件不存在，使用系统环境变量或默认值"
