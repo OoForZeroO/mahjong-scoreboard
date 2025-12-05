@@ -13,7 +13,21 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                echo "代码检出完成，分支：${env.BRANCH_NAME}"
+                script {
+                    // 获取当前分支名（多种方法尝试）
+                    def branchName = env.GIT_BRANCH ?: env.BRANCH_NAME
+                    if (!branchName) {
+                        // 从 Git 命令获取
+                        branchName = sh(
+                            script: 'git rev-parse --abbrev-ref HEAD || git branch --show-current',
+                            returnStdout: true
+                        ).trim()
+                    }
+                    // 移除 origin/ 前缀（如果有）
+                    branchName = branchName.replaceAll('^origin/', '')
+                    env.BRANCH_NAME = branchName
+                    echo "代码检出完成，分支：${env.BRANCH_NAME}"
+                }
             }
         }
         
@@ -85,12 +99,20 @@ pipeline {
                 anyOf {
                     branch 'develop'
                     branch 'test'
+                    expression { 
+                        def branch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '')
+                        return branch == 'develop' || branch == 'test'
+                    }
                 }
             }
             steps {
                 script {
+                    // 再次确认分支信息
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '') ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    echo "当前分支: ${currentBranch}"
+                    echo "开始部署到测试环境..."
+                    
                     dir(TESTING_DIR) {
-                        echo "开始部署到测试环境..."
                         
                         // 停止旧应用
                         sh '''
@@ -234,12 +256,23 @@ pipeline {
         
         stage('Deploy to Production') {
             when {
-                branch 'main'
+                anyOf {
+                    branch 'main'
+                    branch 'master'
+                    expression { 
+                        def branch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '')
+                        return branch == 'main' || branch == 'master'
+                    }
+                }
             }
             steps {
                 script {
+                    // 再次确认分支信息
+                    def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '') ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    echo "当前分支: ${currentBranch}"
+                    echo "开始部署到生产环境..."
+                    
                     dir(PRODUCTION_DIR) {
-                        echo "开始部署到生产环境..."
                         
                         // 停止旧应用
                         sh '''
