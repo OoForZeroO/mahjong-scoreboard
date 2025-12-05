@@ -226,8 +226,22 @@ pipeline {
                         echo "启动应用，端口: ${TESTING_PORT}"
                         echo "数据库: ${SPRING_DATASOURCE_URL}"
                         echo "数据库用户: ${SPRING_DATASOURCE_USERNAME}"
+                        echo "数据库密码: ${SPRING_DATASOURCE_PASSWORD:0:2}****"  # 只显示前2个字符
                         
-                        nohup java -jar -Dspring.profiles.active=testing -Dserver.port=${TESTING_PORT} app.jar > app.log 2>&1 &
+                        # 使用 env 命令确保环境变量被传递，并通过 -D 参数显式传递数据库配置
+                        nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
+                            SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
+                            SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
+                            WECHAT_APPID="${WECHAT_APPID}" \
+                            WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
+                            SERVER_PORT="${TESTING_PORT}" \
+                            java -jar \
+                            -Dspring.profiles.active=testing \
+                            -Dserver.port=${TESTING_PORT} \
+                            -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
+                            -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
+                            -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
+                            app.jar > app.log 2>&1 &
                         echo $! > app.pid
                         echo "应用已启动，PID: $(cat app.pid)"
                     '''
@@ -433,8 +447,22 @@ pipeline {
                         echo "启动应用，端口: ${PRODUCTION_PORT}"
                         echo "数据库: ${SPRING_DATASOURCE_URL}"
                         echo "数据库用户: ${SPRING_DATASOURCE_USERNAME}"
+                        echo "数据库密码: ${SPRING_DATASOURCE_PASSWORD:0:2}****"  # 只显示前2个字符
                         
-                        nohup java -jar -Dspring.profiles.active=production -Dserver.port=${PRODUCTION_PORT} app.jar > app.log 2>&1 &
+                        # 使用 env 命令确保环境变量被传递，并通过 -D 参数显式传递数据库配置
+                        nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
+                            SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
+                            SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
+                            WECHAT_APPID="${WECHAT_APPID}" \
+                            WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
+                            SERVER_PORT="${PRODUCTION_PORT}" \
+                            java -jar \
+                            -Dspring.profiles.active=production \
+                            -Dserver.port=${PRODUCTION_PORT} \
+                            -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
+                            -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
+                            -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
+                            app.jar > app.log 2>&1 &
                         echo $! > app.pid
                         echo "应用已启动，PID: $(cat app.pid)"
                     '''
