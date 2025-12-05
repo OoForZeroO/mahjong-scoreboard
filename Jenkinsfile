@@ -226,7 +226,11 @@ pipeline {
                         echo "启动应用，端口: ${TESTING_PORT}"
                         echo "数据库: ${SPRING_DATASOURCE_URL}"
                         echo "数据库用户: ${SPRING_DATASOURCE_USERNAME}"
-                        echo "数据库密码: ${SPRING_DATASOURCE_PASSWORD:0:2}****"  # 只显示前2个字符
+                        if [ -n "$SPRING_DATASOURCE_PASSWORD" ]; then
+                            echo "数据库密码: 已设置（隐藏）"
+                        else
+                            echo "⚠️  警告: 数据库密码未设置"
+                        fi
                         
                         # 使用 env 命令确保环境变量被传递，并通过 -D 参数显式传递数据库配置
                         nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
@@ -447,7 +451,11 @@ pipeline {
                         echo "启动应用，端口: ${PRODUCTION_PORT}"
                         echo "数据库: ${SPRING_DATASOURCE_URL}"
                         echo "数据库用户: ${SPRING_DATASOURCE_USERNAME}"
-                        echo "数据库密码: ${SPRING_DATASOURCE_PASSWORD:0:2}****"  # 只显示前2个字符
+                        if [ -n "$SPRING_DATASOURCE_PASSWORD" ]; then
+                            echo "数据库密码: 已设置（隐藏）"
+                        else
+                            echo "⚠️  警告: 数据库密码未设置"
+                        fi
                         
                         # 使用 env 命令确保环境变量被传递，并通过 -D 参数显式传递数据库配置
                         nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
