@@ -190,7 +190,7 @@ pipeline {
                         export SERVER_PORT=${TESTING_PORT}
                         
                         # 设置数据库连接（如果环境变量未设置，使用默认值）
-                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5433/mahjong_score_system_test}
+                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5433/mahjong_scoreboard_system_test}
                         export SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-yaohu}
                         
                         # 数据库密码必须设置（从 POSTGRES_PASSWORD 或 SPRING_DATASOURCE_PASSWORD）
@@ -383,7 +383,7 @@ pipeline {
                         export SERVER_PORT=${PRODUCTION_PORT}
                         
                         # 设置数据库连接（如果环境变量未设置，使用默认值）
-                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5432/mahjong_score_system}
+                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5432/mahjong_scoreboard_system}
                         export SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-yaohu}
                         
                         # 数据库密码必须设置（从 POSTGRES_PASSWORD 或 SPRING_DATASOURCE_PASSWORD）
