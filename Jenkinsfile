@@ -107,22 +107,59 @@ pipeline {
                         
                         // 复制新的 JAR 文件
                         sh '''
+                            echo "开始复制 JAR 文件到测试环境..."
                             mkdir -p ${TESTING_DIR}
+                            
+                            # 显示工作空间信息
+                            echo "工作空间: ${WORKSPACE}"
+                            echo "目标目录: ${TESTING_DIR}"
+                            
                             # 查找 JAR 文件（排除 sources 和 javadoc）
+                            echo "查找 JAR 文件..."
                             JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
-                            if [ -z "$JAR_FILE" ] || [ ! -f "$JAR_FILE" ]; then
-                                echo "错误: 找不到 JAR 文件"
+                            
+                            if [ -z "$JAR_FILE" ]; then
+                                echo "❌ 错误: 找不到 JAR 文件"
+                                echo "检查构建目录："
+                                ls -la ${WORKSPACE}/mahjong-scoreboard-start/target/ 2>/dev/null || echo "target 目录不存在"
+                                echo ""
+                                echo "查找所有 JAR 文件："
+                                find ${WORKSPACE} -name "*.jar" -type f 2>/dev/null | head -10
                                 exit 1
                             fi
+                            
+                            if [ ! -f "$JAR_FILE" ]; then
+                                echo "❌ 错误: JAR 文件不存在: $JAR_FILE"
+                                exit 1
+                            fi
+                            
+                            echo "✅ 找到 JAR 文件: $JAR_FILE"
+                            ls -lh "$JAR_FILE"
+                            
+                            # 复制文件
                             echo "复制 JAR 文件: $JAR_FILE -> ${TESTING_DIR}/app.jar"
                             cp "$JAR_FILE" ${TESTING_DIR}/app.jar
+                            
+                            # 验证复制是否成功
+                            if [ ! -f "${TESTING_DIR}/app.jar" ]; then
+                                echo "❌ 错误: 复制失败，目标文件不存在"
+                                echo "检查目标目录权限："
+                                ls -ld ${TESTING_DIR}
+                                exit 1
+                            fi
+                            
+                            echo "✅ JAR 文件复制成功"
+                            ls -lh ${TESTING_DIR}/app.jar
                         '''
                         
                         // 启动新应用
                         sh '''
                             cd ${TESTING_DIR}
-                            nohup java -jar -Dspring.profiles.active=testing app.jar > app.log 2>&1 &
+                            # 显式设置端口，确保使用正确的端口
+                            export SERVER_PORT=${TESTING_PORT}
+                            nohup java -jar -Dspring.profiles.active=testing -Dserver.port=${TESTING_PORT} app.jar > app.log 2>&1 &
                             echo $! > app.pid
+                            echo "启动应用，端口: ${TESTING_PORT}, PID: $(cat app.pid)"
                         '''
                         
                         // 等待应用启动
@@ -219,22 +256,59 @@ pipeline {
                         
                         // 复制新的 JAR 文件
                         sh '''
+                            echo "开始复制 JAR 文件到生产环境..."
                             mkdir -p ${PRODUCTION_DIR}
+                            
+                            # 显示工作空间信息
+                            echo "工作空间: ${WORKSPACE}"
+                            echo "目标目录: ${PRODUCTION_DIR}"
+                            
                             # 查找 JAR 文件（排除 sources 和 javadoc）
+                            echo "查找 JAR 文件..."
                             JAR_FILE=$(find ${WORKSPACE}/mahjong-scoreboard-start/target -name "mahjong-scoreboard-start-*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" | head -1)
-                            if [ -z "$JAR_FILE" ] || [ ! -f "$JAR_FILE" ]; then
-                                echo "错误: 找不到 JAR 文件"
+                            
+                            if [ -z "$JAR_FILE" ]; then
+                                echo "❌ 错误: 找不到 JAR 文件"
+                                echo "检查构建目录："
+                                ls -la ${WORKSPACE}/mahjong-scoreboard-start/target/ 2>/dev/null || echo "target 目录不存在"
+                                echo ""
+                                echo "查找所有 JAR 文件："
+                                find ${WORKSPACE} -name "*.jar" -type f 2>/dev/null | head -10
                                 exit 1
                             fi
+                            
+                            if [ ! -f "$JAR_FILE" ]; then
+                                echo "❌ 错误: JAR 文件不存在: $JAR_FILE"
+                                exit 1
+                            fi
+                            
+                            echo "✅ 找到 JAR 文件: $JAR_FILE"
+                            ls -lh "$JAR_FILE"
+                            
+                            # 复制文件
                             echo "复制 JAR 文件: $JAR_FILE -> ${PRODUCTION_DIR}/app.jar"
                             cp "$JAR_FILE" ${PRODUCTION_DIR}/app.jar
+                            
+                            # 验证复制是否成功
+                            if [ ! -f "${PRODUCTION_DIR}/app.jar" ]; then
+                                echo "❌ 错误: 复制失败，目标文件不存在"
+                                echo "检查目标目录权限："
+                                ls -ld ${PRODUCTION_DIR}
+                                exit 1
+                            fi
+                            
+                            echo "✅ JAR 文件复制成功"
+                            ls -lh ${PRODUCTION_DIR}/app.jar
                         '''
                         
                         // 启动新应用
                         sh '''
                             cd ${PRODUCTION_DIR}
-                            nohup java -jar -Dspring.profiles.active=production app.jar > app.log 2>&1 &
+                            # 显式设置端口，确保使用正确的端口
+                            export SERVER_PORT=${PRODUCTION_PORT}
+                            nohup java -jar -Dspring.profiles.active=production -Dserver.port=${PRODUCTION_PORT} app.jar > app.log 2>&1 &
                             echo $! > app.pid
+                            echo "启动应用，端口: ${PRODUCTION_PORT}, PID: $(cat app.pid)"
                         '''
                         
                         // 等待应用启动
