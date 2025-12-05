@@ -22,6 +22,41 @@ pipeline {
                     
                     // 使用 Maven 构建应用（不构建 Docker 镜像）
                     sh '''
+                        # 设置 JAVA_HOME（如果环境变量未设置或路径不存在，尝试自动查找）
+                        if [ -z "$JAVA_HOME" ] || [ ! -d "$JAVA_HOME" ]; then
+                            # 尝试查找 Java 21
+                            if [ -d "/usr/lib/jvm/java-21-openjdk" ]; then
+                                export JAVA_HOME="/usr/lib/jvm/java-21-openjdk"
+                            elif [ -d "/usr/lib/jvm/java-21" ]; then
+                                export JAVA_HOME="/usr/lib/jvm/java-21"
+                            else
+                                # 尝试从 java 命令查找
+                                JAVA_PATH=$(readlink -f $(which java) 2>/dev/null || echo "")
+                                if [ -n "$JAVA_PATH" ]; then
+                                    JAVA_HOME=$(dirname $(dirname "$JAVA_PATH"))
+                                    export JAVA_HOME
+                                fi
+                            fi
+                        fi
+                        
+                        # 验证 JAVA_HOME
+                        echo "JAVA_HOME: $JAVA_HOME"
+                        if [ -z "$JAVA_HOME" ] || [ ! -d "$JAVA_HOME" ]; then
+                            echo "错误: JAVA_HOME 未设置或路径不存在"
+                            echo "请检查 Java 安装路径，或修改 Jenkinsfile 中的 JAVA_HOME"
+                            exit 1
+                        fi
+                        
+                        # 验证 Java 版本
+                        $JAVA_HOME/bin/java -version || {
+                            echo "错误: 无法执行 Java，请检查 JAVA_HOME 路径"
+                            exit 1
+                        }
+                        
+                        # 设置 PATH
+                        export PATH="$JAVA_HOME/bin:$PATH"
+                        
+                        # 进入项目目录并构建
                         cd mahjong-scoreboard-start
                         mvn clean package -DskipTests
                     '''
