@@ -6,6 +6,9 @@ pipeline {
         TESTING_DIR = '/opt/yaohufox/testing'
         PRODUCTION_PORT = '8081'  // 生产环境端口
         TESTING_PORT = '8082'     // 测试环境端口
+        PRODUCTION_DOMAIN = 'yaohufox.com'  // 生产环境域名
+        TESTING_DOMAIN = 'test.yaohufox.com'     // 测试环境域名（如果配置了 test.yaohufox.com，可修改）
+        TESTING_DOMAIN_PORT = '8082'        // 测试环境端口（用于域名+端口访问）
         JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'  // 根据实际 Java 路径调整
     }
     
@@ -26,7 +29,7 @@ pipeline {
                     // 移除 origin/ 前缀（如果有）
                     branchName = branchName.replaceAll('^origin/', '')
                     env.BRANCH_NAME = branchName
-                    echo "代码检出完成，分支：${env.BRANCH_NAME}"
+                echo "代码检出完成，分支：${env.BRANCH_NAME}"
                 }
             }
         }
@@ -110,25 +113,25 @@ pipeline {
                     // 再次确认分支信息
                     def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '') ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
                     echo "当前分支: ${currentBranch}"
-                    echo "开始部署到测试环境..."
+                        echo "开始部署到测试环境..."
                         
-                    // 停止旧应用
-                    sh '''
+                        // 停止旧应用
+                        sh '''
                         if [ -f ${TESTING_DIR}/app.pid ]; then
                             PID=$(cat ${TESTING_DIR}/app.pid)
-                            if ps -p $PID > /dev/null 2>&1; then
-                                kill $PID || true
-                                sleep 5
-                                kill -9 $PID 2>/dev/null || true
-                            fi
+                                if ps -p $PID > /dev/null 2>&1; then
+                                    kill $PID || true
+                                    sleep 5
+                                    kill -9 $PID 2>/dev/null || true
+                                fi
                             rm -f ${TESTING_DIR}/app.pid
-                        fi
-                    '''
-                    
-                    // 复制新的 JAR 文件
-                    sh '''
+                            fi
+                        '''
+                        
+                        // 复制新的 JAR 文件
+                        sh '''
                         echo "开始复制 JAR 文件到测试环境..."
-                        mkdir -p ${TESTING_DIR}
+                            mkdir -p ${TESTING_DIR}
                         
                         # 显示工作空间信息
                         echo "工作空间: ${WORKSPACE}"
@@ -170,11 +173,11 @@ pipeline {
                         
                         echo "✅ JAR 文件复制成功"
                         ls -lh ${TESTING_DIR}/app.jar
-                    '''
-                    
-                    // 启动新应用
-                    sh '''
-                        cd ${TESTING_DIR}
+                        '''
+                        
+                        // 启动新应用
+                        sh '''
+                            cd ${TESTING_DIR}
                         
                         # 加载环境变量（从 .env 文件或系统环境变量）
                         ENV_FILE="${TESTING_DIR}/.env"
@@ -246,22 +249,22 @@ pipeline {
                             -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
                             -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
                             app.jar > app.log 2>&1 &
-                        echo $! > app.pid
+                            echo $! > app.pid
                         echo "应用已启动，PID: $(cat app.pid)"
-                    '''
-                    
-                    // 等待应用启动
-                    echo "等待应用启动..."
-                    sh 'sleep 15'
-                    
-                    // 验证部署
-                    sh '''
+                        '''
+                        
+                        // 等待应用启动
+                        echo "等待应用启动..."
+                        sh 'sleep 15'
+                        
+                        // 验证部署
+                        sh '''
                         # 1. 检查进程是否存在
                         if [ -f ${TESTING_DIR}/app.pid ]; then
                             PID=$(cat ${TESTING_DIR}/app.pid)
-                            if ps -p $PID > /dev/null 2>&1; then
+                                if ps -p $PID > /dev/null 2>&1; then
                                 echo "✅ 应用进程运行中，PID: $PID"
-                            else
+                                else
                                 echo "❌ 应用进程不存在，查看日志："
                                 tail -50 ${TESTING_DIR}/app.log
                                 exit 1
@@ -269,8 +272,8 @@ pipeline {
                         else
                             echo "❌ PID 文件不存在，查看日志："
                             tail -50 ${TESTING_DIR}/app.log
-                            exit 1
-                        fi
+                                    exit 1
+                                fi
                         
                         # 2. 检查端口是否监听
                         APP_PORT=${TESTING_PORT}
@@ -280,24 +283,45 @@ pipeline {
                             echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
                         fi
                         
-                        # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
-                        echo "检查应用健康状态..."
+                        # 3. 检查 HTTP 健康检查端点（使用域名，最多重试 5 次）
+                        echo "检查应用健康状态（通过域名访问）..."
                         MAX_RETRIES=5
                         RETRY_COUNT=0
                         HEALTH_CHECK_SUCCESS=false
+                        
+                        # 构建健康检查 URL（优先使用域名+端口，如果域名未配置则回退到 localhost）
+                        HEALTH_CHECK_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}"
+                        TEST_API_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}/api/test/hello"
+                        
+                        echo "健康检查地址: ${HEALTH_CHECK_URL}"
+                        echo "测试接口地址: ${TEST_API_URL}"
                         
                         while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
                             sleep 3
                             RETRY_COUNT=$((RETRY_COUNT + 1))
                             echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
                             
-                            # 尝试访问健康检查端点
-                            if curl -f -s http://localhost:${TESTING_PORT}/actuator/health > /dev/null 2>&1; then
-                                echo "✅ 健康检查通过"
+                            # 优先使用域名访问健康检查端点
+                            if curl -f -s --connect-timeout 5 "${HEALTH_CHECK_URL}/actuator/health" > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过（域名访问）"
+                                curl -s "${HEALTH_CHECK_URL}/actuator/health" | head -3
                                 HEALTH_CHECK_SUCCESS=true
                                 break
-                            elif curl -f -s http://localhost:${TESTING_PORT}/api/test/hello > /dev/null 2>&1; then
-                                echo "✅ 测试接口可访问"
+                            elif curl -f -s --connect-timeout 5 "${TEST_API_URL}" > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问（域名访问）"
+                                curl -s "${TEST_API_URL}"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            # 如果域名访问失败，回退到 localhost（用于诊断）
+                            elif curl -f -s --connect-timeout 5 "http://localhost:${TESTING_PORT}/actuator/health" > /dev/null 2>&1; then
+                                echo "⚠️  域名访问失败，但 localhost 访问成功"
+                                echo "   可能原因：DNS 未配置或防火墙阻止外部访问"
+                                echo "   建议：配置 DNS 或检查防火墙规则"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif curl -f -s --connect-timeout 5 "http://localhost:${TESTING_PORT}/api/test/hello" > /dev/null 2>&1; then
+                                echo "⚠️  域名访问失败，但 localhost 访问成功"
+                                echo "   可能原因：DNS 未配置或防火墙阻止外部访问"
                                 HEALTH_CHECK_SUCCESS=true
                                 break
                             fi
@@ -310,11 +334,15 @@ pipeline {
                             echo ""
                             echo "检查端口监听状态："
                             netstat -tln 2>/dev/null | grep ${TESTING_PORT} || ss -tln 2>/dev/null | grep ${TESTING_PORT} || echo "端口 ${TESTING_PORT} 未监听"
+                            echo ""
+                            echo "诊断信息："
+                            echo "  域名访问: curl ${HEALTH_CHECK_URL}/actuator/health"
+                            echo "  本地访问: curl http://localhost:${TESTING_PORT}/actuator/health"
                             exit 1
-                        fi
-                    '''
-                    
-                    echo "测试环境部署完成！"
+                            fi
+                        '''
+                        
+                        echo "测试环境部署完成！"
                 }
             }
         }
@@ -322,7 +350,7 @@ pipeline {
         stage('Deploy to Production') {
             when {
                 anyOf {
-                    branch 'main'
+                branch 'main'
                     branch 'master'
                     expression { 
                         def branch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '')
@@ -335,25 +363,25 @@ pipeline {
                     // 再次确认分支信息
                     def currentBranch = env.BRANCH_NAME ?: env.GIT_BRANCH?.replaceAll('^origin/', '') ?: sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
                     echo "当前分支: ${currentBranch}"
-                    echo "开始部署到生产环境..."
-                    
-                    // 停止旧应用
-                    sh '''
+                        echo "开始部署到生产环境..."
+                        
+                        // 停止旧应用
+                        sh '''
                         if [ -f ${PRODUCTION_DIR}/app.pid ]; then
                             PID=$(cat ${PRODUCTION_DIR}/app.pid)
-                            if ps -p $PID > /dev/null 2>&1; then
-                                kill $PID || true
-                                sleep 5
-                                kill -9 $PID 2>/dev/null || true
-                            fi
+                                if ps -p $PID > /dev/null 2>&1; then
+                                    kill $PID || true
+                                    sleep 5
+                                    kill -9 $PID 2>/dev/null || true
+                                fi
                             rm -f ${PRODUCTION_DIR}/app.pid
-                        fi
-                    '''
-                    
-                    // 复制新的 JAR 文件
-                    sh '''
+                            fi
+                        '''
+                        
+                        // 复制新的 JAR 文件
+                        sh '''
                         echo "开始复制 JAR 文件到生产环境..."
-                        mkdir -p ${PRODUCTION_DIR}
+                            mkdir -p ${PRODUCTION_DIR}
                         
                         # 显示工作空间信息
                         echo "工作空间: ${WORKSPACE}"
@@ -395,11 +423,11 @@ pipeline {
                         
                         echo "✅ JAR 文件复制成功"
                         ls -lh ${PRODUCTION_DIR}/app.jar
-                    '''
-                    
-                    // 启动新应用
-                    sh '''
-                        cd ${PRODUCTION_DIR}
+                        '''
+                        
+                        // 启动新应用
+                        sh '''
+                            cd ${PRODUCTION_DIR}
                         
                         # 加载环境变量（从 .env 文件或系统环境变量）
                         ENV_FILE="${PRODUCTION_DIR}/.env"
@@ -471,22 +499,22 @@ pipeline {
                             -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
                             -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
                             app.jar > app.log 2>&1 &
-                        echo $! > app.pid
+                            echo $! > app.pid
                         echo "应用已启动，PID: $(cat app.pid)"
-                    '''
-                    
-                    // 等待应用启动
-                    echo "等待应用启动..."
-                    sh 'sleep 15'
-                    
-                    // 验证部署
-                    sh '''
+                        '''
+                        
+                        // 等待应用启动
+                        echo "等待应用启动..."
+                        sh 'sleep 15'
+                        
+                        // 验证部署
+                        sh '''
                         # 1. 检查进程是否存在
                         if [ -f ${PRODUCTION_DIR}/app.pid ]; then
                             PID=$(cat ${PRODUCTION_DIR}/app.pid)
-                            if ps -p $PID > /dev/null 2>&1; then
+                                if ps -p $PID > /dev/null 2>&1; then
                                 echo "✅ 应用进程运行中，PID: $PID"
-                            else
+                                else
                                 echo "❌ 应用进程不存在，查看日志："
                                 tail -50 ${PRODUCTION_DIR}/app.log
                                 exit 1
@@ -494,8 +522,8 @@ pipeline {
                         else
                             echo "❌ PID 文件不存在，查看日志："
                             tail -50 ${PRODUCTION_DIR}/app.log
-                            exit 1
-                        fi
+                                    exit 1
+                                fi
                         
                         # 2. 检查端口是否监听
                         APP_PORT=${PRODUCTION_PORT}
@@ -505,24 +533,57 @@ pipeline {
                             echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
                         fi
                         
-                        # 3. 检查 HTTP 健康检查端点（最多重试 5 次）
-                        echo "检查应用健康状态..."
+                        # 3. 检查 HTTP 健康检查端点（使用域名，最多重试 5 次）
+                        echo "检查应用健康状态（通过域名访问）..."
                         MAX_RETRIES=5
                         RETRY_COUNT=0
                         HEALTH_CHECK_SUCCESS=false
+                        
+                        # 构建健康检查 URL（生产环境使用 HTTPS）
+                        HEALTH_CHECK_URL="https://${PRODUCTION_DOMAIN}"
+                        HEALTH_CHECK_HTTP_URL="http://${PRODUCTION_DOMAIN}"
+                        TEST_API_URL="https://${PRODUCTION_DOMAIN}/api/test/hello"
+                        
+                        echo "健康检查地址（HTTPS）: ${HEALTH_CHECK_URL}"
+                        echo "健康检查地址（HTTP）: ${HEALTH_CHECK_HTTP_URL}"
+                        echo "测试接口地址: ${TEST_API_URL}"
                         
                         while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
                             sleep 3
                             RETRY_COUNT=$((RETRY_COUNT + 1))
                             echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
                             
-                            # 尝试访问健康检查端点
-                            if curl -f -s http://localhost:${PRODUCTION_PORT}/actuator/health > /dev/null 2>&1; then
-                                echo "✅ 健康检查通过"
+                            # 优先使用 HTTPS 域名访问健康检查端点
+                            if curl -f -s --connect-timeout 5 -k "${HEALTH_CHECK_URL}/actuator/health" > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过（HTTPS 域名访问）"
+                                curl -s -k "${HEALTH_CHECK_URL}/actuator/health" | head -3
                                 HEALTH_CHECK_SUCCESS=true
                                 break
-                            elif curl -f -s http://localhost:${PRODUCTION_PORT}/api/test/hello > /dev/null 2>&1; then
-                                echo "✅ 测试接口可访问"
+                            elif curl -f -s --connect-timeout 5 "${HEALTH_CHECK_HTTP_URL}/actuator/health" > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过（HTTP 域名访问）"
+                                curl -s "${HEALTH_CHECK_HTTP_URL}/actuator/health" | head -3
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif curl -f -s --connect-timeout 5 -k "${TEST_API_URL}" > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问（HTTPS 域名访问）"
+                                curl -s -k "${TEST_API_URL}"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif curl -f -s --connect-timeout 5 "${HEALTH_CHECK_HTTP_URL}/api/test/hello" > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问（HTTP 域名访问）"
+                                curl -s "${HEALTH_CHECK_HTTP_URL}/api/test/hello"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            # 如果域名访问失败，回退到 localhost（用于诊断）
+                            elif curl -f -s --connect-timeout 5 "http://localhost:${PRODUCTION_PORT}/actuator/health" > /dev/null 2>&1; then
+                                echo "⚠️  域名访问失败，但 localhost 访问成功"
+                                echo "   可能原因：Nginx 未配置或防火墙阻止外部访问"
+                                echo "   建议：检查 Nginx 配置和防火墙规则"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif curl -f -s --connect-timeout 5 "http://localhost:${PRODUCTION_PORT}/api/test/hello" > /dev/null 2>&1; then
+                                echo "⚠️  域名访问失败，但 localhost 访问成功"
+                                echo "   可能原因：Nginx 未配置或防火墙阻止外部访问"
                                 HEALTH_CHECK_SUCCESS=true
                                 break
                             fi
@@ -535,11 +596,16 @@ pipeline {
                             echo ""
                             echo "检查端口监听状态："
                             netstat -tln 2>/dev/null | grep ${PRODUCTION_PORT} || ss -tln 2>/dev/null | grep ${PRODUCTION_PORT} || echo "端口 ${PRODUCTION_PORT} 未监听"
+                            echo ""
+                            echo "诊断信息："
+                            echo "  HTTPS域名访问: curl -k ${HEALTH_CHECK_URL}/actuator/health"
+                            echo "  HTTP域名访问: curl ${HEALTH_CHECK_HTTP_URL}/actuator/health"
+                            echo "  本地访问: curl http://localhost:${PRODUCTION_PORT}/actuator/health"
                             exit 1
-                        fi
-                    '''
-                    
-                    echo "生产环境部署完成！"
+                            fi
+                        '''
+                        
+                        echo "生产环境部署完成！"
                 }
             }
         }
