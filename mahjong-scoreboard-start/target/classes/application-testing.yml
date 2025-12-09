@@ -2,7 +2,7 @@ spring:
   application:
     name: mahjong-scoreboard-service-test
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/mahjong_scoreboard_system_test}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mahjong_scoreboard_system_test}
     username: ${SPRING_DATASOURCE_USERNAME:yaohu}
     password: ${SPRING_DATASOURCE_PASSWORD}
     hikari:

@@ -23,6 +23,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/matches")
+@CrossOrigin
 public class MatchController {
 
     private static final Logger logger = LoggerFactory.getLogger(MatchController.class);
@@ -40,6 +41,13 @@ public class MatchController {
             // 验证请求参数
             if (match == null) {
                 return buildErrorResponse(HttpStatus.BAD_REQUEST, "请求体不能为空");
+            }
+            
+            // 处理 room 对象：如果提供了 room 对象但没有 roomName，尝试从 room 获取
+            if (match.getRoom() != null && (match.getRoomName() == null || match.getRoomName().trim().isEmpty())) {
+                if (match.getRoom().getName() != null && !match.getRoom().getName().trim().isEmpty()) {
+                    match.setRoomName(match.getRoom().getName());
+                }
             }
             
             // roomName现在是可选的，不再验证room对象

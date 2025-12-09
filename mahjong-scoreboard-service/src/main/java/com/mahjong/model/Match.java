@@ -1,9 +1,11 @@
 package com.mahjong.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "matches")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Match {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -12,6 +14,10 @@ public class Match {
 
     @Column(name = "room_name", nullable = true, length = 100)
     private String roomName;
+
+    // 临时字段，用于接收前端传递的 room 对象（不持久化到数据库）
+    @Transient
+    private Room room;
 
     @Column(name = "start_time", nullable = false)
     private Long startTime;
@@ -116,5 +122,13 @@ public class Match {
 
     public void setUpdateTime(Long updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public Room getRoom() {
+        return room;
+    }
+
+    public void setRoom(Room room) {
+        this.room = room;
     }
 }

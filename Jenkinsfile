@@ -7,8 +7,8 @@ pipeline {
         PRODUCTION_PORT = '8081'  // 生产环境端口
         TESTING_PORT = '8082'     // 测试环境端口
         PRODUCTION_DOMAIN = 'yaohufox.com'  // 生产环境域名
-        TESTING_DOMAIN = 'test.yaohufox.com'     // 测试环境域名（如果配置了 test.yaohufox.com，可修改）
-        TESTING_DOMAIN_PORT = '8082'        // 测试环境端口（用于域名+端口访问）
+        TESTING_DOMAIN = 'test.yaohufox.com'  // 测试环境域名
+        TESTING_DOMAIN_PORT = '8082'  // 测试环境端口（使用8082端口访问）
         JAVA_HOME = '/usr/lib/jvm/java-21-openjdk'  // 根据实际 Java 路径调整
     }
     
@@ -208,7 +208,7 @@ pipeline {
                         export SERVER_PORT=${TESTING_PORT}
                         
                         # 设置数据库连接（如果环境变量未设置，使用默认值）
-                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5433/mahjong_scoreboard_system_test}
+                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5432/mahjong_scoreboard_system_test}
                         export SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-yaohu}
                         
                         # 数据库密码必须设置（从 POSTGRES_PASSWORD 或 SPRING_DATASOURCE_PASSWORD）
@@ -289,26 +289,51 @@ pipeline {
                         RETRY_COUNT=0
                         HEALTH_CHECK_SUCCESS=false
                         
-                        # 构建健康检查 URL（优先使用域名+端口，如果域名未配置则回退到 localhost）
-                        HEALTH_CHECK_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}"
-                        TEST_API_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}/api/test/hello"
+                        # 构建健康检查 URL（使用域名+端口，如果域名未配置则回退到 localhost）
+                        if [ -n "${TESTING_DOMAIN_PORT}" ]; then
+                            HEALTH_CHECK_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}"
+                            TEST_API_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}/api/test/hello"
+                        else
+                            HEALTH_CHECK_URL="https://${TESTING_DOMAIN}"
+                            TEST_API_HTTP_URL="http://${TESTING_DOMAIN}"
+                        fi
                         
                         echo "健康检查地址: ${HEALTH_CHECK_URL}"
-                        echo "测试接口地址: ${TEST_API_URL}"
+                        if [ -n "${TEST_API_URL}" ]; then
+                            echo "测试接口地址: ${TEST_API_URL}"
+                        elif [ -n "${TEST_API_HTTP_URL}" ]; then
+                            echo "测试接口地址（HTTP）: ${TEST_API_HTTP_URL}/api/test/hello"
+                            echo "测试接口地址（HTTPS）: ${HEALTH_CHECK_URL}/api/test/hello"
+                        fi
                         
                         while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
                             sleep 3
                             RETRY_COUNT=$((RETRY_COUNT + 1))
                             echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
                             
-                            # 优先使用域名访问健康检查端点
-                            if curl -f -s --connect-timeout 5 "${HEALTH_CHECK_URL}/actuator/health" > /dev/null 2>&1; then
-                                echo "✅ 健康检查通过（域名访问）"
-                                curl -s "${HEALTH_CHECK_URL}/actuator/health" | head -3
+                            # 优先使用 HTTPS 域名访问健康检查端点
+                            if curl -f -s --connect-timeout 5 -k "${HEALTH_CHECK_URL}/actuator/health" > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过（HTTPS 域名访问）"
+                                curl -s -k "${HEALTH_CHECK_URL}/actuator/health" | head -3
                                 HEALTH_CHECK_SUCCESS=true
                                 break
-                            elif curl -f -s --connect-timeout 5 "${TEST_API_URL}" > /dev/null 2>&1; then
-                                echo "✅ 测试接口可访问（域名访问）"
+                            elif [ -n "${TEST_API_HTTP_URL}" ] && curl -f -s --connect-timeout 5 "${TEST_API_HTTP_URL}/actuator/health" > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过（HTTP 域名访问）"
+                                curl -s "${TEST_API_HTTP_URL}/actuator/health" | head -3
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif curl -f -s --connect-timeout 5 -k "${HEALTH_CHECK_URL}/api/test/hello" > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问（HTTPS 域名访问）"
+                                curl -s -k "${HEALTH_CHECK_URL}/api/test/hello"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif [ -n "${TEST_API_HTTP_URL}" ] && curl -f -s --connect-timeout 5 "${TEST_API_HTTP_URL}/api/test/hello" > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问（HTTP 域名访问）"
+                                curl -s "${TEST_API_HTTP_URL}/api/test/hello"
+                                HEALTH_CHECK_SUCCESS=true
+                                break
+                            elif [ -n "${TEST_API_URL}" ] && curl -f -s --connect-timeout 5 "${TEST_API_URL}" > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问（域名+端口访问）"
                                 curl -s "${TEST_API_URL}"
                                 HEALTH_CHECK_SUCCESS=true
                                 break

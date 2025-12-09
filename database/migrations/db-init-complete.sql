@@ -121,8 +121,7 @@ CREATE TABLE IF NOT EXISTS match_participants (
     create_time BIGINT NOT NULL,
     update_time BIGINT NOT NULL,
     FOREIGN KEY (match_id) REFERENCES matches(match_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-    UNIQUE(match_id, COALESCE(user_id, wechat_user_id))
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 COMMENT ON TABLE match_participants IS '对局参与者表';
@@ -271,6 +270,11 @@ CREATE INDEX IF NOT EXISTS idx_matches_end_time ON matches(end_time);
 CREATE INDEX IF NOT EXISTS idx_match_participants_match_id ON match_participants(match_id);
 CREATE INDEX IF NOT EXISTS idx_match_participants_user_id ON match_participants(user_id);
 CREATE INDEX IF NOT EXISTS idx_match_participants_wechat_user_id ON match_participants(wechat_user_id);
+
+-- 对局参与者表唯一约束（使用唯一索引实现 COALESCE 功能）
+-- 确保一个对局中每个用户（user_id 或 wechat_user_id）只能有一条记录
+CREATE UNIQUE INDEX IF NOT EXISTS idx_match_participants_unique_user 
+ON match_participants(match_id, COALESCE(user_id::text, wechat_user_id));
 
 -- 轮次得分表索引
 CREATE INDEX IF NOT EXISTS idx_round_scores_match_id ON round_scores(match_id);
