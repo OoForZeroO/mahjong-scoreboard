@@ -20,6 +20,7 @@ spring:
 
 server:
   port: ${SERVER_PORT:8082}
+  address: 0.0.0.0  # 监听所有网络接口，允许外部访问
   error:
     include-message: always
     include-binding-errors: always
@@ -36,8 +37,8 @@ logging:
 
 # 微信小程序配置（测试环境对接体验版）
 wechat:
-  appId: ${WECHAT_APPID_TEST:${WECHAT_APPID}}
-  appSecret: ${WECHAT_APPSECRET_TEST:${WECHAT_APPSECRET}}
+  appId: ${WECHAT_APPID_TEST:${WECHAT_APPID:wx1b74f5d3678d4091}}
+  appSecret: ${WECHAT_APPSECRET_TEST:${WECHAT_APPSECRET:da88e542e7914defac0c81ba7a6088a9}}
   qrcode:
     page: pages/gameDetail/gameDetail
     width: 430
