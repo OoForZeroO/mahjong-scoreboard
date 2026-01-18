@@ -55,7 +55,7 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
             logger.info("开始生成对局二维码，matchId: {}", matchId);
 
             // 1. 获取access_token
-            String accessToken = getAccessToken();
+            String accessToken = getAccessTokenInternal();
             if (accessToken == null || accessToken.isEmpty()) {
                 logger.error("获取微信access_token失败");
                 throw new RuntimeException("获取微信access_token失败，请检查配置");
@@ -115,10 +115,34 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
         }
     }
 
+    @Override
+    public Map<String, Object> getAccessToken() {
+        try {
+            String accessToken = getAccessTokenInternal();
+            if (accessToken == null || accessToken.isEmpty()) {
+                throw new RuntimeException("获取access_token失败");
+            }
+            
+            // 计算剩余有效期（秒）
+            long remainingSeconds = 0;
+            if (tokenExpireTime != null) {
+                remainingSeconds = Math.max(0, (tokenExpireTime - System.currentTimeMillis()) / 1000);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("access_token", accessToken);
+            result.put("expires_in", remainingSeconds > 0 ? remainingSeconds : 7200);
+            return result;
+        } catch (Exception e) {
+            logger.error("获取access_token失败", e);
+            throw new RuntimeException("获取access_token失败: " + e.getMessage(), e);
+        }
+    }
+
     /**
-     * 获取微信access_token
+     * 获取微信access_token（内部方法，返回字符串）
      */
-    private String getAccessToken() {
+    private String getAccessTokenInternal() {
         try {
             // 检查缓存是否有效（提前5分钟刷新）
             if (cachedAccessToken != null && tokenExpireTime != null && 
