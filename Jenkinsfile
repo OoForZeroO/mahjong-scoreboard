@@ -207,9 +207,13 @@ pipeline {
                         # 显式设置端口
                         export SERVER_PORT=${TESTING_PORT}
                         
-                        # 设置数据库连接（如果环境变量未设置，使用默认值）
-                        export SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:postgresql://localhost:5432/mahjong_scoreboard_system_test}
+                        # 强制设置测试环境数据库连接（覆盖 .env 或系统环境变量中的值）
+                        export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/mahjong_scoreboard_system_test
                         export SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-yaohu}
+                        
+                        # 输出确认信息（用于调试）
+                        echo "⚠️  强制使用测试环境数据库配置（忽略 .env 中的 SPRING_DATASOURCE_URL）"
+                        echo "   数据库URL: ${SPRING_DATASOURCE_URL}"
                         
                         # 数据库密码必须设置（从 POSTGRES_PASSWORD 或 SPRING_DATASOURCE_PASSWORD）
                         if [ -z "$SPRING_DATASOURCE_PASSWORD" ] && [ -n "$POSTGRES_PASSWORD" ]; then
@@ -226,9 +230,14 @@ pipeline {
                         export WECHAT_APPID=${WECHAT_APPID_TEST:-${WECHAT_APPID:-}}
                         export WECHAT_APPSECRET=${WECHAT_APPSECRET_TEST:-${WECHAT_APPSECRET:-}}
                         
-                        echo "启动应用，端口: ${TESTING_PORT}"
-                        echo "数据库: ${SPRING_DATASOURCE_URL}"
+                        echo "=========================================="
+                        echo "启动测试环境应用"
+                        echo "=========================================="
+                        echo "端口: ${TESTING_PORT}"
+                        echo "数据库URL: ${SPRING_DATASOURCE_URL}"
                         echo "数据库用户: ${SPRING_DATASOURCE_USERNAME}"
+                        echo "Profile: testing"
+                        echo "=========================================="
                         if [ -n "$SPRING_DATASOURCE_PASSWORD" ]; then
                             echo "数据库密码: 已设置（隐藏）"
                         else
@@ -275,12 +284,27 @@ pipeline {
                                     exit 1
                                 fi
                         
-                        # 2. 检查端口是否监听
+                        # 2. 检查端口是否监听（必须成功，否则构建失败）
                         APP_PORT=${TESTING_PORT}
+                        PORT_LISTENING=false
                         if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
                             echo "✅ 端口 $APP_PORT 正在监听"
+                            PORT_LISTENING=true
                         else
-                            echo "⚠️  端口 $APP_PORT 未监听，应用可能还在启动中..."
+                            echo "❌ 端口 $APP_PORT 未监听，应用启动失败"
+                            echo "查看应用启动日志："
+                            tail -100 ${TESTING_DIR}/app.log
+                            echo ""
+                            echo "检查进程状态："
+                            if [ -f ${TESTING_DIR}/app.pid ]; then
+                                PID=$(cat ${TESTING_DIR}/app.pid)
+                                if ps -p $PID > /dev/null 2>&1; then
+                                    echo "进程 $PID 仍在运行，但端口未监听，可能应用启动失败"
+                                else
+                                    echo "进程 $PID 已退出"
+                                fi
+                            fi
+                            exit 1
                         fi
                         
                         # 3. 检查 HTTP 健康检查端点（使用域名，最多重试 5 次）
