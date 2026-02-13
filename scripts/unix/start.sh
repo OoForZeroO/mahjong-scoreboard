@@ -34,5 +34,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "编译成功，正在启动应用..."
-java -jar mahjong-scoreboard-start/target/mahjong-scoreboard-start-1.0-SNAPSHOT.jar
+# 默认使用测试环境配置（端口 8082，数据库 mahjong_scoreboard_system_test）
+# 如需使用生产环境，请添加参数：--spring.profiles.active=production
+java -jar mahjong-scoreboard-start/target/mahjong-scoreboard-start-1.0-SNAPSHOT.jar --spring.profiles.active=testing
 
