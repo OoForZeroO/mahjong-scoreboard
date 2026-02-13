@@ -262,38 +262,47 @@ pipeline {
                         echo "应用已启动，PID: $(cat app.pid)"
                         '''
                         
-                        // 等待应用启动
+                        // 等待应用启动（增加等待时间，并分阶段检查）
                         echo "等待应用启动..."
-                        sh 'sleep 15'
-                        
-                        // 验证部署
                         sh '''
-                        # 1. 检查进程是否存在
-                        if [ -f ${TESTING_DIR}/app.pid ]; then
-                            PID=$(cat ${TESTING_DIR}/app.pid)
-                                if ps -p $PID > /dev/null 2>&1; then
-                                echo "✅ 应用进程运行中，PID: $PID"
-                                else
-                                echo "❌ 应用进程不存在，查看日志："
-                                tail -50 ${TESTING_DIR}/app.log
-                                exit 1
-                            fi
-                        else
-                            echo "❌ PID 文件不存在，查看日志："
-                            tail -50 ${TESTING_DIR}/app.log
+                        APP_PORT=${TESTING_PORT}
+                        MAX_WAIT=60
+                        WAIT_INTERVAL=3
+                        WAIT_COUNT=0
+                        
+                        echo "等待应用启动（最多等待 ${MAX_WAIT} 秒）..."
+                        while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+                            sleep $WAIT_INTERVAL
+                            WAIT_COUNT=$((WAIT_COUNT + WAIT_INTERVAL))
+                            
+                            # 检查进程是否存在
+                            if [ -f ${TESTING_DIR}/app.pid ]; then
+                                PID=$(cat ${TESTING_DIR}/app.pid)
+                                if ! ps -p $PID > /dev/null 2>&1; then
+                                    echo "❌ 进程 $PID 已退出（启动失败）"
+                                    echo "查看应用启动日志："
+                                    tail -100 ${TESTING_DIR}/app.log
                                     exit 1
                                 fi
+                            else
+                                echo "⚠️  PID文件不存在，等待中... (${WAIT_COUNT}/${MAX_WAIT}秒)"
+                                continue
+                            fi
+                            
+                            # 检查端口是否监听
+                            if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                                echo "✅ 端口 $APP_PORT 正在监听（等待 ${WAIT_COUNT} 秒后检测到）"
+                                break
+                            fi
+                            
+                            echo "等待端口 $APP_PORT 监听... (${WAIT_COUNT}/${MAX_WAIT}秒)"
+                        done
                         
-                        # 2. 检查端口是否监听（必须成功，否则构建失败）
-                        APP_PORT=${TESTING_PORT}
-                        PORT_LISTENING=false
-                        if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
-                            echo "✅ 端口 $APP_PORT 正在监听"
-                            PORT_LISTENING=true
-                        else
+                        # 最终检查：端口必须监听
+                        if ! netstat -tln 2>/dev/null | grep -q ":$APP_PORT " && ! ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
                             echo "❌ 端口 $APP_PORT 未监听，应用启动失败"
                             echo "查看应用启动日志："
-                            tail -100 ${TESTING_DIR}/app.log
+                            tail -200 ${TESTING_DIR}/app.log
                             echo ""
                             echo "检查进程状态："
                             if [ -f ${TESTING_DIR}/app.pid ]; then
@@ -306,89 +315,102 @@ pipeline {
                             fi
                             exit 1
                         fi
+                        '''
                         
-                        # 3. 检查 HTTP 健康检查端点（使用域名，最多重试 5 次）
-                        echo "检查应用健康状态（通过域名访问）..."
-                        MAX_RETRIES=5
+                        // 验证部署
+                        sh '''
+                        APP_PORT=${TESTING_PORT}
+                        
+                        # 1. 再次确认进程和端口
+                        if [ -f ${TESTING_DIR}/app.pid ]; then
+                            PID=$(cat ${TESTING_DIR}/app.pid)
+                            if ps -p $PID > /dev/null 2>&1; then
+                                echo "✅ 应用进程运行中，PID: $PID"
+                            else
+                                echo "❌ 应用进程不存在，查看日志："
+                                tail -100 ${TESTING_DIR}/app.log
+                                exit 1
+                            fi
+                        else
+                            echo "❌ PID 文件不存在，查看日志："
+                            tail -100 ${TESTING_DIR}/app.log
+                            exit 1
+                        fi
+                        
+                        # 2. 再次确认端口监听
+                        if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                            echo "✅ 端口 $APP_PORT 正在监听"
+                        else
+                            echo "❌ 端口 $APP_PORT 未监听，应用启动失败"
+                            echo "查看应用启动日志："
+                            tail -200 ${TESTING_DIR}/app.log
+                            exit 1
+                        fi
+                        
+                        # 3. 检查 HTTP 健康检查端点（优先检查 localhost，确保应用真正启动）
+                        echo "检查应用健康状态..."
+                        MAX_RETRIES=10
                         RETRY_COUNT=0
                         HEALTH_CHECK_SUCCESS=false
+                        LOCALHOST_URL="http://localhost:${TESTING_PORT}"
                         
-                        # 构建健康检查 URL（使用域名+端口，如果域名未配置则回退到 localhost）
-                        if [ -n "${TESTING_DOMAIN_PORT}" ]; then
-                            HEALTH_CHECK_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}"
-                            TEST_API_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}/api/test/hello"
-                        else
-                            HEALTH_CHECK_URL="https://${TESTING_DOMAIN}"
-                            TEST_API_HTTP_URL="http://${TESTING_DOMAIN}"
-                        fi
-                        
-                        echo "健康检查地址: ${HEALTH_CHECK_URL}"
-                        if [ -n "${TEST_API_URL}" ]; then
-                            echo "测试接口地址: ${TEST_API_URL}"
-                        elif [ -n "${TEST_API_HTTP_URL}" ]; then
-                            echo "测试接口地址（HTTP）: ${TEST_API_HTTP_URL}/api/test/hello"
-                            echo "测试接口地址（HTTPS）: ${HEALTH_CHECK_URL}/api/test/hello"
-                        fi
+                        echo "优先检查 localhost 健康检查端点（确保应用真正启动）..."
+                        echo "健康检查地址: ${LOCALHOST_URL}/actuator/health"
                         
                         while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-                            sleep 3
+                            sleep 2
                             RETRY_COUNT=$((RETRY_COUNT + 1))
                             echo "健康检查尝试 $RETRY_COUNT/$MAX_RETRIES..."
                             
-                            # 优先使用 HTTPS 域名访问健康检查端点
-                            if curl -f -s --connect-timeout 5 -k "${HEALTH_CHECK_URL}/actuator/health" > /dev/null 2>&1; then
-                                echo "✅ 健康检查通过（HTTPS 域名访问）"
-                                curl -s -k "${HEALTH_CHECK_URL}/actuator/health" | head -3
+                            # 优先检查 localhost（最可靠）
+                            if curl -f -s --connect-timeout 3 "${LOCALHOST_URL}/actuator/health" > /dev/null 2>&1; then
+                                echo "✅ 健康检查通过（localhost 访问）"
+                                curl -s "${LOCALHOST_URL}/actuator/health" | head -5
                                 HEALTH_CHECK_SUCCESS=true
                                 break
-                            elif [ -n "${TEST_API_HTTP_URL}" ] && curl -f -s --connect-timeout 5 "${TEST_API_HTTP_URL}/actuator/health" > /dev/null 2>&1; then
-                                echo "✅ 健康检查通过（HTTP 域名访问）"
-                                curl -s "${TEST_API_HTTP_URL}/actuator/health" | head -3
-                                HEALTH_CHECK_SUCCESS=true
-                                break
-                            elif curl -f -s --connect-timeout 5 -k "${HEALTH_CHECK_URL}/api/test/hello" > /dev/null 2>&1; then
-                                echo "✅ 测试接口可访问（HTTPS 域名访问）"
-                                curl -s -k "${HEALTH_CHECK_URL}/api/test/hello"
-                                HEALTH_CHECK_SUCCESS=true
-                                break
-                            elif [ -n "${TEST_API_HTTP_URL}" ] && curl -f -s --connect-timeout 5 "${TEST_API_HTTP_URL}/api/test/hello" > /dev/null 2>&1; then
-                                echo "✅ 测试接口可访问（HTTP 域名访问）"
-                                curl -s "${TEST_API_HTTP_URL}/api/test/hello"
-                                HEALTH_CHECK_SUCCESS=true
-                                break
-                            elif [ -n "${TEST_API_URL}" ] && curl -f -s --connect-timeout 5 "${TEST_API_URL}" > /dev/null 2>&1; then
-                                echo "✅ 测试接口可访问（域名+端口访问）"
-                                curl -s "${TEST_API_URL}"
-                                HEALTH_CHECK_SUCCESS=true
-                                break
-                            # 如果域名访问失败，回退到 localhost（用于诊断）
-                            elif curl -f -s --connect-timeout 5 "http://localhost:${TESTING_PORT}/actuator/health" > /dev/null 2>&1; then
-                                echo "⚠️  域名访问失败，但 localhost 访问成功"
-                                echo "   可能原因：DNS 未配置或防火墙阻止外部访问"
-                                echo "   建议：配置 DNS 或检查防火墙规则"
-                                HEALTH_CHECK_SUCCESS=true
-                                break
-                            elif curl -f -s --connect-timeout 5 "http://localhost:${TESTING_PORT}/api/test/hello" > /dev/null 2>&1; then
-                                echo "⚠️  域名访问失败，但 localhost 访问成功"
-                                echo "   可能原因：DNS 未配置或防火墙阻止外部访问"
+                            elif curl -f -s --connect-timeout 3 "${LOCALHOST_URL}/api/test/hello" > /dev/null 2>&1; then
+                                echo "✅ 测试接口可访问（localhost 访问）"
+                                curl -s "${LOCALHOST_URL}/api/test/hello"
                                 HEALTH_CHECK_SUCCESS=true
                                 break
                             fi
                         done
                         
+                        # 如果 localhost 检查失败，构建必须失败
                         if [ "$HEALTH_CHECK_SUCCESS" != "true" ]; then
-                            echo "❌ 健康检查失败，应用可能未完全启动"
-                            echo "查看应用日志："
-                            tail -100 ${TESTING_DIR}/app.log
+                            echo "❌ 健康检查失败，应用未完全启动或无法访问"
+                            echo ""
+                            echo "查看应用启动日志："
+                            tail -200 ${TESTING_DIR}/app.log
+                            echo ""
+                            echo "检查进程状态："
+                            if [ -f ${TESTING_DIR}/app.pid ]; then
+                                PID=$(cat ${TESTING_DIR}/app.pid)
+                                ps -p $PID > /dev/null 2>&1 && echo "进程 $PID 仍在运行" || echo "进程 $PID 已退出"
+                            fi
                             echo ""
                             echo "检查端口监听状态："
                             netstat -tln 2>/dev/null | grep ${TESTING_PORT} || ss -tln 2>/dev/null | grep ${TESTING_PORT} || echo "端口 ${TESTING_PORT} 未监听"
                             echo ""
-                            echo "诊断信息："
-                            echo "  域名访问: curl ${HEALTH_CHECK_URL}/actuator/health"
-                            echo "  本地访问: curl http://localhost:${TESTING_PORT}/actuator/health"
+                            echo "诊断命令："
+                            echo "  curl ${LOCALHOST_URL}/actuator/health"
+                            echo "  curl ${LOCALHOST_URL}/api/test/hello"
                             exit 1
+                        fi
+                        
+                        # localhost 检查成功后，尝试域名访问（用于验证 Nginx 配置，但不影响构建结果）
+                        echo ""
+                        echo "验证域名访问（不影响构建结果）..."
+                        if [ -n "${TESTING_DOMAIN_PORT}" ]; then
+                            DOMAIN_URL="http://${TESTING_DOMAIN}:${TESTING_DOMAIN_PORT}"
+                            if curl -f -s --connect-timeout 5 "${DOMAIN_URL}/actuator/health" > /dev/null 2>&1; then
+                                echo "✅ 域名访问成功: ${DOMAIN_URL}/actuator/health"
+                            else
+                                echo "⚠️  域名访问失败（但 localhost 访问成功）"
+                                echo "   可能原因：Nginx 未配置或防火墙阻止外部访问"
+                                echo "   建议：检查 Nginx 配置和防火墙规则"
                             fi
+                        fi
                         '''
                         
                         echo "测试环境部署完成！"
