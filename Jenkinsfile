@@ -98,6 +98,7 @@ pipeline {
         }
         
         stage('Deploy to Testing') {
+            // 注意：本流水线在 Jenkins 所在节点执行，/opt/yaohufox/testing 应为该节点上的路径；若应用需在另一台机器运行，请改用 SSH/部署插件
             when {
                 anyOf {
                     branch 'develop'
@@ -244,21 +245,40 @@ pipeline {
                             echo "⚠️  警告: 数据库密码未设置"
                         fi
                         
-                        # 使用 env 命令确保环境变量被传递，并通过 -D 参数显式传递数据库配置
-                        nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
-                            SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
-                            SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
-                            WECHAT_APPID="${WECHAT_APPID}" \
-                            WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
-                            SERVER_PORT="${TESTING_PORT}" \
-                            java -jar \
-                            -Dspring.profiles.active=testing \
-                            -Dserver.port=${TESTING_PORT} \
-                            -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
-                            -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
-                            -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
-                            app.jar > app.log 2>&1 &
-                            echo $! > app.pid
+                        # 使用 setsid 脱离 Jenkins 进程树，避免步骤结束后进程被杀死；无 setsid 时退化为 nohup
+                        # 确保使用 JAVA_HOME（与构建阶段一致）
+                        export PATH="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk}/bin:$PATH"
+                        if command -v setsid >/dev/null 2>&1; then
+                            setsid nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
+                                SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
+                                SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
+                                WECHAT_APPID="${WECHAT_APPID}" \
+                                WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
+                                SERVER_PORT="${TESTING_PORT}" \
+                                java -jar \
+                                -Dspring.profiles.active=testing \
+                                -Dserver.port=${TESTING_PORT} \
+                                -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
+                                -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
+                                -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
+                                app.jar >> app.log 2>&1 < /dev/null &
+                        else
+                            nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
+                                SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
+                                SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
+                                WECHAT_APPID="${WECHAT_APPID}" \
+                                WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
+                                SERVER_PORT="${TESTING_PORT}" \
+                                java -jar \
+                                -Dspring.profiles.active=testing \
+                                -Dserver.port=${TESTING_PORT} \
+                                -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
+                                -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
+                                -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
+                                app.jar >> app.log 2>&1 < /dev/null &
+                        fi
+                        echo $! > app.pid
+                        sleep 2
                         echo "应用已启动，PID: $(cat app.pid)"
                         '''
                         
@@ -556,21 +576,39 @@ pipeline {
                             echo "⚠️  警告: 数据库密码未设置"
                         fi
                         
-                        # 使用 env 命令确保环境变量被传递，并通过 -D 参数显式传递数据库配置
-                        nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
-                            SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
-                            SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
-                            WECHAT_APPID="${WECHAT_APPID}" \
-                            WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
-                            SERVER_PORT="${PRODUCTION_PORT}" \
-                            java -jar \
-                            -Dspring.profiles.active=production \
-                            -Dserver.port=${PRODUCTION_PORT} \
-                            -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
-                            -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
-                            -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
-                            app.jar > app.log 2>&1 &
-                            echo $! > app.pid
+                        # 使用 setsid 脱离 Jenkins 进程树，避免步骤结束后进程被杀死；无 setsid 时退化为 nohup
+                        export PATH="${JAVA_HOME:-/usr/lib/jvm/java-21-openjdk}/bin:$PATH"
+                        if command -v setsid >/dev/null 2>&1; then
+                            setsid nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
+                                SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
+                                SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
+                                WECHAT_APPID="${WECHAT_APPID}" \
+                                WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
+                                SERVER_PORT="${PRODUCTION_PORT}" \
+                                java -jar \
+                                -Dspring.profiles.active=production \
+                                -Dserver.port=${PRODUCTION_PORT} \
+                                -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
+                                -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
+                                -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
+                                app.jar >> app.log 2>&1 < /dev/null &
+                        else
+                            nohup env SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}" \
+                                SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}" \
+                                SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
+                                WECHAT_APPID="${WECHAT_APPID}" \
+                                WECHAT_APPSECRET="${WECHAT_APPSECRET}" \
+                                SERVER_PORT="${PRODUCTION_PORT}" \
+                                java -jar \
+                                -Dspring.profiles.active=production \
+                                -Dserver.port=${PRODUCTION_PORT} \
+                                -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
+                                -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
+                                -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
+                                app.jar >> app.log 2>&1 < /dev/null &
+                        fi
+                        echo $! > app.pid
+                        sleep 2
                         echo "应用已启动，PID: $(cat app.pid)"
                         '''
                         

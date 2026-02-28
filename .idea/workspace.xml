@@ -4,83 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="服务器初始化3">
-      <change afterPath="$PROJECT_DIR$/mahjong-scoreboard-ide/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/mahjong-scoreboard-service.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/mahjong-scoreboard-start/mahjong-scoreboard-start.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2025_11_27,_18_07_[Changes]/shelved.patch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/shelf/Uncommitted_changes_before_Update_at_2025_11_27__18_07__Changes_.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/MatchController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/MatchController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/ParticipantController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/ParticipantController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/RoomController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/RoomController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/ScoreRecordController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/ScoreRecordController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/StatisticsController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/StatisticsController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/TestController$TestUserRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/TestController$TestUserRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/TestController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/TestController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserApiController$UserCreateRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserApiController$UserCreateRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserApiController$UserResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserApiController$UserResponse.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserApiController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserApiController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/UserController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/WechatController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/WechatController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/WechatMiniController.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/controller/WechatMiniController.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/MatchResultResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/MatchResultResponse.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/MonthlyStatisticsRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/MonthlyStatisticsRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/MonthlyStatisticsResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/MonthlyStatisticsResponse.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/ParticipantScoreInfo.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/ParticipantScoreInfo.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/PlayerScoreInfo.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/dto/PlayerScoreInfo.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/EndMatchRequest.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/EndMatchRequest.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/Match.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/Match.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse$ParticipantDetail.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse$ParticipantDetail.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse$RoundDetail.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse$RoundDetail.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse$RoundScoreDetail.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse$RoundScoreDetail.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchDetailResponse.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchParticipant$RoundScoreData.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchParticipant$RoundScoreData.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchParticipant.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchParticipant.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchResult.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchSettlement.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchSettlement.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchStatusQueryResponse$ParticipantSummary.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchStatusQueryResponse$ParticipantSummary.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchStatusQueryResponse.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/MatchStatusQueryResponse.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/Room.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/Room.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/RoundRecord.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/RoundRecord.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/RoundScore.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/RoundScore.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/ScoreRecord.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/ScoreRecord.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/User.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/User.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/WechatUser.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/model/WechatUser.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchParticipantRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchParticipantRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchResultRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchResultRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchSettlementRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/MatchSettlementRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/RoomRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/RoomRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/RoundRecordRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/RoundRecordRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/RoundScoreRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/RoundScoreRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/ScoreRecordRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/ScoreRecordRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/UserRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/UserRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/WechatUserRepository.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/repository/WechatUserRepository.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/CleanupService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/CleanupService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/MatchService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/MatchService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/RoomService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/RoomService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/ScoreRecordService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/ScoreRecordService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/StatisticsService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/StatisticsService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/UserService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/UserService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/WechatQRCodeService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/WechatQRCodeService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/WechatUserService.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/WechatUserService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/CleanupServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/CleanupServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/MatchServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/MatchServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/RoomServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/RoomServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/ScoreRecordServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/ScoreRecordServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/StatisticsServiceImpl$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/StatisticsServiceImpl$1.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/StatisticsServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/StatisticsServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/UserServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/UserServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/WechatQRCodeServiceImpl$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/WechatQRCodeServiceImpl$1.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/WechatQRCodeServiceImpl.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/WechatQRCodeServiceImpl.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/WechatUserServiceHandler.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-service/target/classes/com/mahjong/service/impl/WechatUserServiceHandler.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mahjong-scoreboard-start/target/classes/com/mahjong/start/MahjongScoreboardApplication.class" beforeDir="false" afterPath="$PROJECT_DIR$/mahjong-scoreboard-start/target/classes/com/mahjong/start/MahjongScoreboardApplication.class" afterDir="false" />
-    </list>
+    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="服务器初始化3" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -112,26 +36,26 @@
     <option name="showLibraryContents" value="true" />
     <option name="showMembers" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_ADD_EXTERNAL_FILES": "true",
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "last_opened_file_path": "/Users/cch/Documents/mahjong-scoreboard",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings",
-    "spring.configuration.checksum": "86380bbe2b86e6626b5cc09f21fa4793"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/cch/Documents/mahjong-scoreboard&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;86380bbe2b86e6626b5cc09f21fa4793&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Application.Mahjong Scoreboard Application">
     <configuration name="Mahjong Scoreboard Application" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="com.mahjong.start.MahjongScoreboardApplication" />
@@ -178,7 +102,7 @@
       <workItem from="1762736096060" duration="2001000" />
       <workItem from="1763493666786" duration="14100000" />
       <workItem from="1763648470188" duration="4487000" />
-      <workItem from="1772264724188" duration="478000" />
+      <workItem from="1772264724188" duration="596000" />
     </task>
     <task id="LOCAL-00001" summary="点">
       <created>1763501104157</created>
