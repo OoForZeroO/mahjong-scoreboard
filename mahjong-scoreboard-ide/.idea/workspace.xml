@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="Jenkins 构建修复2" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="PUSH_AUTO_UPDATE" value="true" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="useMavenConfig" value="true" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="MavenRunner">
+    <option name="jreName" value="21" />
+  </component>
+  <component name="ProjectId" id="35GUqZ1Wl8fdPuYP69fvBSfwMxr" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+    <option name="showMembers" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;vcs.Git&quot;,
+    &quot;spring.configuration.checksum&quot;: &quot;86380bbe2b86e6626b5cc09f21fa4793&quot;
+  }
+}</component>
+  <component name="RunManager" selected="Application.Mahjong Scoreboard Application">
+    <configuration name="Mahjong Scoreboard Application" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="com.mahjong.start.MahjongScoreboardApplication" />
+      <module name="mahjong-scoreboard-start" />
+      <option name="PROGRAM_PARAMETERS" value="mahjong-scoreboard-start" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="MahjongScoreboardApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+      <module name="mahjong-scoreboard-start" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.mahjong.start.MahjongScoreboardApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.Mahjong Scoreboard Application" />
+      <item itemvalue="Spring Boot.MahjongScoreboardApplication" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="" />
+      <created>1762736093981</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1762736093981</updated>
+      <workItem from="1762736096060" duration="2001000" />
+      <workItem from="1763493666786" duration="14100000" />
+      <workItem from="1763648470188" duration="21515000" />
+    </task>
+    <task id="LOCAL-00001" summary="点">
+      <created>1763501104157</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1763501104160</updated>
+    </task>
+    <task id="LOCAL-00002" summary="启动">
+      <created>1763648605218</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1763648605218</updated>
+    </task>
+    <task id="LOCAL-00003" summary="服务器初始化">
+      <created>1764236570996</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1764236570996</updated>
+    </task>
+    <task id="LOCAL-00004" summary="服务器初始化">
+      <created>1764722280903</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1764722280903</updated>
+    </task>
+    <task id="LOCAL-00005" summary="服务器初始化3">
+      <created>1764727035106</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1764727035106</updated>
+    </task>
+    <task id="LOCAL-00006" summary="服务器初始化4">
+      <created>1764727841439</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1764727841439</updated>
+    </task>
+    <task id="LOCAL-00007" summary="服务器初始化5">
+      <created>1764728152578</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1764728152578</updated>
+    </task>
+    <task id="LOCAL-00008" summary="接口优化">
+      <created>1768760215412</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1768760215414</updated>
+    </task>
+    <task id="LOCAL-00009" summary="接口优化微信小程序获取 token">
+      <created>1769580972360</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1769580972362</updated>
+    </task>
+    <task id="LOCAL-00010" summary="数据库配置更改0213">
+      <created>1770974461648</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1770974461649</updated>
+    </task>
+    <task id="LOCAL-00011" summary="启动脚本 8082 端口指定">
+      <created>1770974971054</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1770974971055</updated>
+    </task>
+    <task id="LOCAL-00012" summary="Jenkins 构建修复">
+      <created>1770976330618</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1770976330618</updated>
+    </task>
+    <task id="LOCAL-00013" summary="Jenkins 构建修复2">
+      <created>1770976664261</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1770976664262</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="点" />
+    <MESSAGE value="启动" />
+    <MESSAGE value="启动2" />
+    <MESSAGE value="服务器初始化" />
+    <MESSAGE value="服务器初始化2" />
+    <MESSAGE value="服务器初始化3" />
+    <MESSAGE value="服务器初始化4" />
+    <MESSAGE value="服务器初始化5" />
+    <MESSAGE value="接口优化" />
+    <MESSAGE value="接口优化微信小程序获取 token" />
+    <MESSAGE value="数据库配置更改0213" />
+    <MESSAGE value="启动脚本 8082 端口指定" />
+    <MESSAGE value="Jenkins 构建修复" />
+    <MESSAGE value="Jenkins 构建修复2" />
+    <option name="LAST_COMMIT_MESSAGE" value="Jenkins 构建修复2" />
+  </component>
+</project>

@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../mahjong-scoreboard.iml" filepath="$PROJECT_DIR$/../mahjong-scoreboard.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../mahjong-scoreboard-service/mahjong-scoreboard-service.iml" filepath="$PROJECT_DIR$/../mahjong-scoreboard-service/mahjong-scoreboard-service.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../mahjong-scoreboard-start/mahjong-scoreboard-start.iml" filepath="$PROJECT_DIR$/../mahjong-scoreboard-start/mahjong-scoreboard-start.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mahjong-scoreboard.iml" filepath="$PROJECT_DIR$/mahjong-scoreboard.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mahjong-scoreboard-service/mahjong-scoreboard-service.iml" filepath="$PROJECT_DIR$/mahjong-scoreboard-service/mahjong-scoreboard-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mahjong-scoreboard-start/mahjong-scoreboard-start.iml" filepath="$PROJECT_DIR$/mahjong-scoreboard-start/mahjong-scoreboard-start.iml" />
     </modules>
   </component>
 </project>
