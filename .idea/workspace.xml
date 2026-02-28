@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="服务器初始化3" />
+    <list default="true" id="6f0776ec-facd-467a-af56-88412e03823a" name="Changes" comment="服务器初始化3">
+      <change afterPath="$PROJECT_DIR$/docs/Jenkins-sudo配置.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Jenkinsfile" beforeDir="false" afterPath="$PROJECT_DIR$/Jenkinsfile" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -103,6 +106,7 @@
       <workItem from="1763493666786" duration="14100000" />
       <workItem from="1763648470188" duration="4487000" />
       <workItem from="1772264724188" duration="596000" />
+      <workItem from="1772265797348" duration="547000" />
     </task>
     <task id="LOCAL-00001" summary="点">
       <created>1763501104157</created>
@@ -167,6 +171,6 @@
     <MESSAGE value="服务器初始化" />
     <MESSAGE value="服务器初始化2" />
     <MESSAGE value="服务器初始化3" />
-    <option name="LAST_COMMIT_MESSAGE" value="服务器初始化3" />
+    <option name="LAST_COMMIT_MESSAGE" value="" />
   </component>
 </project>
