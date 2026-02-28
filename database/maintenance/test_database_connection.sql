@@ -1,5 +1,5 @@
 -- 测试数据库连接和表结构
--- 连接到 mahjong_score_system 数据库
+-- 生产库：mahjong_scoreboard_system；测试库：mahjong_scoreboard_system_test
 
 -- 1. 检查当前数据库
 SELECT current_database();
@@ -38,5 +38,5 @@ AND table_name = 'match_results'
 AND column_name = 'total_duration';
 
 -- 6. 如果表存在，显示表结构
-\c mahjong_score_system
+\c mahjong_scoreboard_system
 \d match_results;

@@ -47,5 +47,5 @@ AND table_name = 'match_results'
 AND (column_name LIKE '%total%' OR column_name LIKE '%round%');
 
 -- 7. 如果表存在，显示表结构
-\c mahjong_score_system
+\c mahjong_scoreboard_system
 \d match_results;
