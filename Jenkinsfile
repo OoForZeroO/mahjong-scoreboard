@@ -178,7 +178,7 @@ pipeline {
                         sleep 3
                         '''
                         
-                        // 等待应用启动（按端口与 systemd 状态检查）
+                        // 等待应用启动（以端口监听为准，不依赖 sudo systemctl is-active，避免 sudoers 参数匹配问题）
                         echo "等待应用启动..."
                         sh '''
                         APP_PORT=${TESTING_PORT}
@@ -186,46 +186,33 @@ pipeline {
                         WAIT_INTERVAL=3
                         WAIT_COUNT=0
                         
-                        echo "等待应用启动（最多等待 ${MAX_WAIT} 秒）..."
+                        echo "等待应用启动（最多等待 ${MAX_WAIT} 秒，按端口 ${APP_PORT} 监听判断）..."
                         while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
                             sleep $WAIT_INTERVAL
                             WAIT_COUNT=$((WAIT_COUNT + WAIT_INTERVAL))
-                            
-                            if sudo systemctl is-active --quiet mahjong-testing && ( netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT " ); then
-                                echo "✅ 服务已就绪，端口 $APP_PORT 正在监听（${WAIT_COUNT} 秒）"
+                            if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                                echo "✅ 端口 $APP_PORT 正在监听（${WAIT_COUNT} 秒）"
                                 break
                             fi
                             echo "等待端口 $APP_PORT 监听... (${WAIT_COUNT}/${MAX_WAIT}秒)"
                         done
                         
-                        if ! sudo systemctl is-active --quiet mahjong-testing; then
-                            echo "❌ mahjong-testing 未在运行"
-                            sudo systemctl status mahjong-testing --no-pager || true
-                            echo "--- 最近日志 ---"
-                            sudo journalctl -u mahjong-testing -n 100 --no-pager || true
-                            exit 1
-                        fi
                         if ! netstat -tln 2>/dev/null | grep -q ":$APP_PORT " && ! ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
-                            echo "❌ 端口 $APP_PORT 未监听"
-                            echo "--- 应用日志 ---"
-                            tail -200 ${TESTING_DIR}/app.log 2>/dev/null || sudo journalctl -u mahjong-testing -n 100 --no-pager
+                            echo "❌ 端口 $APP_PORT 未监听，应用可能未启动"
+                            sudo systemctl status mahjong-testing --no-pager 2>/dev/null || true
+                            echo "--- 最近日志 ---"
+                            sudo journalctl -u mahjong-testing -n 100 --no-pager 2>/dev/null || tail -200 ${TESTING_DIR}/app.log 2>/dev/null || true
                             exit 1
                         fi
                         '''
                         
-                        // 验证部署
+                        // 验证部署（以端口与健康检查为准，不依赖 systemctl is-active）
                         sh '''
                         APP_PORT=${TESTING_PORT}
-                        
-                        if ! sudo systemctl is-active --quiet mahjong-testing; then
-                            echo "❌ mahjong-testing 未在运行"
-                            sudo systemctl status mahjong-testing --no-pager || true
-                            sudo journalctl -u mahjong-testing -n 80 --no-pager || true
-                            exit 1
-                        fi
                         if ! netstat -tln 2>/dev/null | grep -q ":$APP_PORT " && ! ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
                             echo "❌ 端口 $APP_PORT 未监听"
-                            tail -150 ${TESTING_DIR}/app.log 2>/dev/null || sudo journalctl -u mahjong-testing -n 80 --no-pager
+                            sudo systemctl status mahjong-testing --no-pager 2>/dev/null || true
+                            sudo journalctl -u mahjong-testing -n 80 --no-pager 2>/dev/null || true
                             exit 1
                         fi
                         
@@ -346,7 +333,7 @@ pipeline {
                         sleep 3
                         '''
                         
-                        // 等待应用启动
+                        // 等待应用启动（以端口监听为准，不依赖 systemctl is-active）
                         echo "等待应用启动..."
                         sh '''
                         APP_PORT=${PRODUCTION_PORT}
@@ -356,37 +343,27 @@ pipeline {
                         while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
                             sleep $WAIT_INTERVAL
                             WAIT_COUNT=$((WAIT_COUNT + WAIT_INTERVAL))
-                            if sudo systemctl is-active --quiet mahjong-production && ( netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT " ); then
-                                echo "✅ 服务已就绪，端口 $APP_PORT 正在监听"
+                            if netstat -tln 2>/dev/null | grep -q ":$APP_PORT " || ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
+                                echo "✅ 端口 $APP_PORT 正在监听"
                                 break
                             fi
                             echo "等待端口 $APP_PORT... (${WAIT_COUNT}/${MAX_WAIT}秒)"
                         done
-                        if ! sudo systemctl is-active --quiet mahjong-production; then
-                            echo "❌ mahjong-production 未在运行"
-                            sudo systemctl status mahjong-production --no-pager || true
-                            sudo journalctl -u mahjong-production -n 80 --no-pager || true
-                            exit 1
-                        fi
                         if ! netstat -tln 2>/dev/null | grep -q ":$APP_PORT " && ! ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
                             echo "❌ 端口 $APP_PORT 未监听"
-                            sudo journalctl -u mahjong-production -n 100 --no-pager || true
+                            sudo systemctl status mahjong-production --no-pager 2>/dev/null || true
+                            sudo journalctl -u mahjong-production -n 100 --no-pager 2>/dev/null || true
                             exit 1
                         fi
                         '''
                         
-                        // 验证部署
+                        // 验证部署（以端口与健康检查为准）
                         sh '''
                         APP_PORT=${PRODUCTION_PORT}
-                        if ! sudo systemctl is-active --quiet mahjong-production; then
-                            echo "❌ mahjong-production 未在运行"
-                            sudo systemctl status mahjong-production --no-pager || true
-                            sudo journalctl -u mahjong-production -n 80 --no-pager || true
-                            exit 1
-                        fi
                         if ! netstat -tln 2>/dev/null | grep -q ":$APP_PORT " && ! ss -tln 2>/dev/null | grep -q ":$APP_PORT "; then
                             echo "❌ 端口 $APP_PORT 未监听"
-                            sudo journalctl -u mahjong-production -n 80 --no-pager || true
+                            sudo systemctl status mahjong-production --no-pager 2>/dev/null || true
+                            sudo journalctl -u mahjong-production -n 80 --no-pager 2>/dev/null || true
                             exit 1
                         fi
                         echo "检查应用健康状态..."
