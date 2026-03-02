@@ -61,10 +61,10 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
                 throw new RuntimeException("获取微信access_token失败，请检查配置");
             }
 
-            // 2. 调用微信API生成二维码
-            String scene = "matchId=" + matchId;
+            // 2. 调用微信API生成二维码（scene 使用纯 matchId，与文档及前端一致）
+            String scene = String.valueOf(matchId);
             if (scene.length() > 32) {
-                scene = scene.substring(0, 32); // 限制最大32字符
+                scene = scene.substring(0, 32); // 微信 scene 最大32字符
             }
 
             Map<String, Object> requestBody = new HashMap<>();
