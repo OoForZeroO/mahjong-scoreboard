@@ -89,6 +89,7 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
         // 未传 env_version 时微信生成正式版，未发布会提示「尚未发布」；空值时兜底为 trial
         String effectiveEnvVersion = (envVersion != null && !envVersion.isEmpty()) ? envVersion : "trial";
         requestBody.put("env_version", effectiveEnvVersion);
+        logger.info("生成小程序码，env_version={}（trial=体验版 release=正式版），matchId={}", effectiveEnvVersion, matchId);
 
         try {
             // 微信接口不支持 Transfer-Encoding: chunked，必须带 Content-Length。先序列化为 byte[] 再发请求
@@ -99,7 +100,7 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
             HttpEntity<byte[]> requestEntity = new HttpEntity<>(bodyBytes, headers);
 
             String url = QR_CODE_URL + "?access_token=" + accessToken;
-            logger.info("调用微信API生成二维码，URL: {}", url);
+            logger.info("调用微信API生成二维码，env_version={}, matchId={}, page={}", effectiveEnvVersion, matchId, qrcodePage);
 
             ResponseEntity<byte[]> response = restTemplate.exchange(
                 url,
