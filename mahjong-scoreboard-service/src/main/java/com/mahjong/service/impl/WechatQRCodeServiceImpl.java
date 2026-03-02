@@ -1,6 +1,7 @@
 package com.mahjong.service.impl;
 
 import com.mahjong.service.WechatQRCodeService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,7 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
     private String envVersion;
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     // 缓存access_token，避免频繁请求
     private String cachedAccessToken;
@@ -74,9 +76,12 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
             requestBody.put("check_path", checkPath);
             requestBody.put("env_version", envVersion);
 
+            // 微信接口不支持 Transfer-Encoding: chunked，必须带 Content-Length。先序列化为 byte[] 再发请求
+            byte[] bodyBytes = objectMapper.writeValueAsString(requestBody).getBytes("UTF-8");
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            headers.setContentLength(bodyBytes.length);
+            HttpEntity<byte[]> requestEntity = new HttpEntity<>(bodyBytes, headers);
 
             String url = QR_CODE_URL + "?access_token=" + accessToken;
             logger.info("调用微信API生成二维码，URL: {}", url);
@@ -84,7 +89,7 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
             ResponseEntity<byte[]> response = restTemplate.exchange(
                 url,
                 HttpMethod.POST,
-                request,
+                requestEntity,
                 byte[].class
             );
 
