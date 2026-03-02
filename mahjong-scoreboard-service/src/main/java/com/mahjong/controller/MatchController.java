@@ -620,9 +620,11 @@ public class MatchController {
             }
             
             String qrcodeData = wechatQRCodeService.generateMatchQRCode(matchId);
+            String qrcodeDataStandard = wechatQRCodeService.generateStandardQRCode(matchId);
             
             Map<String, Object> data = new HashMap<>();
             data.put("qrcodeData", qrcodeData);
+            data.put("qrcodeDataStandard", qrcodeDataStandard);
             data.put("matchId", matchId);
             
             logger.info("二维码生成成功，matchId: {}", matchId);

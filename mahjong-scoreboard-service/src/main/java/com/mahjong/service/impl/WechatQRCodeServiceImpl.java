@@ -3,6 +3,12 @@ package com.mahjong.service.impl;
 import com.mahjong.service.WechatQRCodeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +20,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Base64;
+import java.io.ByteArrayOutputStream;
 
 /**
  * 微信二维码生成服务实现
@@ -152,6 +159,32 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
         cachedAccessToken = null;
         tokenExpireTime = null;
         logger.info("已清除 access_token 缓存");
+    }
+
+    @Override
+    public String generateStandardQRCode(Long matchId) {
+        // 与小程序码信息一致：内容为 matchId（即 scene）
+        String content = String.valueOf(matchId);
+        int size = 256;
+        try {
+            Map<EncodeHintType, Object> hints = new HashMap<>();
+            hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
+            hints.put(EncodeHintType.MARGIN, 1);
+            QRCodeWriter writer = new QRCodeWriter();
+            BitMatrix bitMatrix = writer.encode(content, BarcodeFormat.QR_CODE, size, size, hints);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            MatrixToImageWriter.writeToStream(bitMatrix, "PNG", out);
+            byte[] pngBytes = out.toByteArray();
+            String base64 = Base64.getEncoder().encodeToString(pngBytes);
+            logger.info("标准二维码生成成功，matchId: {}", matchId);
+            return "data:image/png;base64," + base64;
+        } catch (WriterException e) {
+            logger.error("生成标准二维码失败", e);
+            throw new RuntimeException("生成标准二维码失败: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("生成标准二维码失败", e);
+            throw new RuntimeException("生成标准二维码失败: " + e.getMessage(), e);
+        }
     }
 
     @Override
