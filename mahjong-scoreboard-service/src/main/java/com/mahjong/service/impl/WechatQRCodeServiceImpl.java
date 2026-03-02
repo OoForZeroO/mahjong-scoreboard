@@ -2,6 +2,7 @@ package com.mahjong.service.impl;
 
 import com.mahjong.service.WechatQRCodeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,28 +55,40 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
     @Override
     public String generateMatchQRCode(Long matchId) {
         try {
-            logger.info("开始生成对局二维码，matchId: {}", matchId);
+            return generateMatchQRCodeInternal(matchId, false);
+        } catch (Exception e) {
+            logger.error("生成二维码失败", e);
+            throw new RuntimeException("生成二维码失败: " + e.getMessage(), e);
+        }
+    }
 
-            // 1. 获取access_token
-            String accessToken = getAccessTokenInternal();
-            if (accessToken == null || accessToken.isEmpty()) {
-                logger.error("获取微信access_token失败");
-                throw new RuntimeException("获取微信access_token失败，请检查配置");
-            }
+    /**
+     * 内部实现，支持 access_token 40001 时清除缓存并重试一次
+     */
+    private String generateMatchQRCodeInternal(Long matchId, boolean isRetry) {
+        logger.info("开始生成对局二维码，matchId: {}, isRetry: {}", matchId, isRetry);
 
-            // 2. 调用微信API生成二维码（scene 使用纯 matchId，与文档及前端一致）
-            String scene = String.valueOf(matchId);
-            if (scene.length() > 32) {
-                scene = scene.substring(0, 32); // 微信 scene 最大32字符
-            }
+        // 1. 获取access_token
+        String accessToken = getAccessTokenInternal();
+        if (accessToken == null || accessToken.isEmpty()) {
+            logger.error("获取微信access_token失败");
+            throw new RuntimeException("获取微信access_token失败，请检查配置");
+        }
 
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("scene", scene);
-            requestBody.put("page", qrcodePage);
-            requestBody.put("width", qrcodeWidth);
-            requestBody.put("check_path", checkPath);
-            requestBody.put("env_version", envVersion);
+        // 2. 调用微信API生成二维码（scene 使用纯 matchId，与文档及前端一致）
+        String scene = String.valueOf(matchId);
+        if (scene.length() > 32) {
+            scene = scene.substring(0, 32); // 微信 scene 最大32字符
+        }
 
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("scene", scene);
+        requestBody.put("page", qrcodePage);
+        requestBody.put("width", qrcodeWidth);
+        requestBody.put("check_path", checkPath);
+        requestBody.put("env_version", envVersion);
+
+        try {
             // 微信接口不支持 Transfer-Encoding: chunked，必须带 Content-Length。先序列化为 byte[] 再发请求
             byte[] bodyBytes = objectMapper.writeValueAsString(requestBody).getBytes("UTF-8");
             HttpHeaders headers = new HttpHeaders();
@@ -95,10 +108,17 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 byte[] imageData = response.getBody();
-                
-                // 检查是否是错误响应（微信API错误时返回JSON）
                 String responseStr = new String(imageData);
+
+                // 检查是否是错误响应（微信API错误时返回JSON）
                 if (responseStr.startsWith("{") && responseStr.contains("errcode")) {
+                    int errcode = parseErrcode(responseStr);
+                    // access_token 无效或过期时清除缓存并重试一次
+                    if (errcode == 40001 && !isRetry) {
+                        logger.warn("access_token 无效或已过期(40001)，清除缓存并重试");
+                        clearAccessTokenCache();
+                        return generateMatchQRCodeInternal(matchId, true);
+                    }
                     logger.error("微信API返回错误: {}", responseStr);
                     throw new RuntimeException("生成二维码失败: " + responseStr);
                 }
@@ -106,18 +126,32 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
                 // 转换为Base64
                 String base64 = Base64.getEncoder().encodeToString(imageData);
                 String qrcodeData = "data:image/png;base64," + base64;
-                
                 logger.info("二维码生成成功，matchId: {}", matchId);
                 return qrcodeData;
             } else {
                 logger.error("调用微信API失败，状态码: {}", response.getStatusCode());
                 throw new RuntimeException("调用微信API失败");
             }
-
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("生成二维码失败", e);
             throw new RuntimeException("生成二维码失败: " + e.getMessage(), e);
         }
+    }
+
+    private int parseErrcode(String jsonStr) {
+        try {
+            JsonNode node = objectMapper.readTree(jsonStr);
+            return node.has("errcode") ? node.get("errcode").asInt() : 0;
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private void clearAccessTokenCache() {
+        cachedAccessToken = null;
+        tokenExpireTime = null;
+        logger.info("已清除 access_token 缓存");
     }
 
     @Override
