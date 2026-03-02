@@ -41,7 +41,7 @@ wechat:
     page: pages/gameDetail/gameDetail
     width: 430
     checkPath: false
-    envVersion: release  # 生产环境使用正式版
+    envVersion: trial  # 线上暂用体验版小程序码，后续可改回 release 正式版
 
 # Actuator 配置
 management:
