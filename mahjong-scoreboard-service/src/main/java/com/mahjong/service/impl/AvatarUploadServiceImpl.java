@@ -93,7 +93,12 @@ public class AvatarUploadServiceImpl implements AvatarUploadService {
         if (!url.contains("://tmp/")) {
             return url;
         }
-        // http(s)://tmp/ 尝试下载并保存到本机，返回 https 地址
+        // http(s)://tmp/ 为小程序端临时地址，服务端无法访问（会报 I/O error），不发起下载
+        if (url.startsWith("http://tmp/") || url.startsWith("https://tmp/")) {
+            logger.warn("临时头像为 http(s)://tmp/，服务端无法拉取，请小程序端先调用 POST /api/v1/upload/avatar 上传后再传 url。已忽略: {}", url);
+            return null;
+        }
+        // 其他含 ://tmp/ 的 URL 仍尝试下载（若有其他临时域名可在此扩展）
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set(HttpHeaders.USER_AGENT, "MahjongScoreboard/1.0");
