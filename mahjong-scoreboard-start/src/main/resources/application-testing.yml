@@ -58,10 +58,11 @@ management:
     db:
       enabled: true
 
-# 头像上传配置（测试环境）
+# 头像上传配置（测试环境，返回 https 以便小程序与浏览器使用）
 app:
   upload:
-    avatar-dir: ${UPLOAD_AVATAR_DIR:/opt/yaohufox/uploads/avatar}
-    avatar-url-prefix: ${UPLOAD_AVATAR_URL_PREFIX:http://test.yaohufox.com:8082/static/avatar}
+    # 测试环境头像存储目录（与 Jenkinsfile TESTING_DIR 对应）
+    avatar-dir: ${UPLOAD_AVATAR_DIR:/opt/yaohufox/testing/uploads/avatar}
+    avatar-url-prefix: ${UPLOAD_AVATAR_URL_PREFIX:https://test.yaohufox.com/static/avatar}
     avatar-max-size: ${UPLOAD_AVATAR_MAX_SIZE:2097152}
 
