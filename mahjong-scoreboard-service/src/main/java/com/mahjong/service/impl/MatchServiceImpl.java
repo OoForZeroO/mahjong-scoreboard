@@ -108,40 +108,28 @@ public class MatchServiceImpl implements MatchService {
         for (MatchParticipant participant : participants) {
             ParticipantDetail detail = new ParticipantDetail();
             detail.setParticipantId(participant.getId());
-            detail.setNickname(participant.getUserName());
             detail.setTotalScore(participant.getTotalScore());
+            detail.setWechatUserId(participant.getWechatUserId());
 
-            // isVisitor 以 WechatUser.isVisitor 为准；如果没有关联用户，则按游客处理
-            boolean isVisitor = true;
-            if (participant.getUser() != null) {
-                Boolean flag = participant.getUser().getIsVisitor();
-                isVisitor = flag != null ? flag : false;
-            } else if (participant.getWechatUserId() != null && !participant.getWechatUserId().trim().isEmpty()) {
-                try {
-                    WechatUser wechatUser = wdao.findByUserId(participant.getWechatUserId());
-                    if (wechatUser != null && wechatUser.getIsVisitor() != null) {
-                        isVisitor = wechatUser.getIsVisitor();
-                    }
-                } catch (Exception e) {
-                    logger.warn("根据 wechatUserId 查询 WechatUser 失败以判断是否游客, wechatUserId: {}", participant.getWechatUserId(), e);
-                }
+            // 约定：participant.wechat_user_id = wechat_users 表主键 id；能查到则 isVisitor=false 并回填用户信息
+            WechatUser wechatUser = resolveWechatUser(participant.getWechatUserId());
+            if (wechatUser != null) {
+                detail.setIsVisitor(wechatUser.getIsVisitor() != null ? wechatUser.getIsVisitor() : false);
+                detail.setUserId(wechatUser.getId());
+                detail.setNickname(wechatUser.getNickname());
+                detail.setAvatar(wechatUser.getAvatar() != null ? wechatUser.getAvatar() : participant.getAvatar());
+            } else {
+                detail.setIsVisitor(true);
+                detail.setUserId(null);
+                detail.setNickname(participant.getUserName());
+                detail.setAvatar(participant.getAvatar());
             }
-            detail.setIsVisitor(isVisitor);
 
-            // 从数据库读取isQuit字段
             Boolean isQuit = participant.getIsQuit() != null ? participant.getIsQuit() : false;
             detail.setIsQuit(isQuit);
-            logger.debug("参与者详情 - participantId: {}, userName: {}, totalScore: {}, isQuit: {}, isVisitor: {}", 
-                        participant.getId(), participant.getUserName(), participant.getTotalScore(), isQuit, isVisitor);
-            detail.setUserId(participant.getUser() != null ? participant.getUser().getId() : null);
-            detail.setWechatUserId(participant.getWechatUserId());
-            // 优先使用参与者自己的头像，如果没有则使用关联用户的头像
-            String avatar = participant.getAvatar();
-            if (avatar == null && participant.getUser() != null) {
-                avatar = participant.getUser().getAvatar();
-            }
-            detail.setAvatar(avatar);
-            
+            logger.debug("参与者详情 - participantId: {}, nickname: {}, totalScore: {}, isQuit: {}, isVisitor: {}",
+                        participant.getId(), detail.getNickname(), participant.getTotalScore(), isQuit, detail.getIsVisitor());
+
             participantDetails.add(detail);
         }
         response.setParticipants(participantDetails);
@@ -184,6 +172,23 @@ public class MatchServiceImpl implements MatchService {
     @Override
     public List<Match> getAllMatches() {
         return dao.findAll();
+    }
+
+    /**
+     * 根据参与者的 wechat_user_id 解析 WechatUser。
+     * 约定：wechat_user_id 存的是 wechat_users 表主键 id；能查到则视为已注册用户。
+     * 兼容：若解析为数字则按 id 查，否则按 openid(userId) 查历史数据。
+     */
+    private WechatUser resolveWechatUser(String wechatUserId) {
+        if (wechatUserId == null || wechatUserId.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            Long id = Long.parseLong(wechatUserId.trim());
+            return wdao.findById(id).orElseGet(() -> wdao.findByUserId(wechatUserId));
+        } catch (NumberFormatException e) {
+            return wdao.findByUserId(wechatUserId);
+        }
     }
 
     @Override
@@ -1293,12 +1298,18 @@ public class MatchServiceImpl implements MatchService {
             for (MatchParticipant participant : allParticipants) {
                 MatchStatusQueryResponse.ParticipantSummary summary = new MatchStatusQueryResponse.ParticipantSummary();
                 summary.setParticipantId(participant.getId());
-                summary.setNickName(participant.getUserName());
-                summary.setAvatar(participant.getAvatar());
                 summary.setTotalScore(participant.getTotalScore());
                 summary.setWechatUserId(participant.getWechatUserId());
-                summary.setIsVisitor(participant.getUser() == null);
-                
+                WechatUser wechatUser = resolveWechatUser(participant.getWechatUserId());
+                if (wechatUser != null) {
+                    summary.setIsVisitor(wechatUser.getIsVisitor() != null ? wechatUser.getIsVisitor() : false);
+                    summary.setNickName(wechatUser.getNickname());
+                    summary.setAvatar(wechatUser.getAvatar() != null ? wechatUser.getAvatar() : participant.getAvatar());
+                } else {
+                    summary.setIsVisitor(true);
+                    summary.setNickName(participant.getUserName());
+                    summary.setAvatar(participant.getAvatar());
+                }
                 participantSummaries.add(summary);
             }
             
