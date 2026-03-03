@@ -103,10 +103,10 @@ public class MatchServiceImpl implements MatchService {
         
         // 获取参与者数据
         List<MatchParticipant> participants = pdao.findByMatch(match);
-        List<MatchDetailResponse.ParticipantDetail> participantDetails = new ArrayList<>();
+        List<ParticipantDetail> participantDetails = new ArrayList<>();
         
         for (MatchParticipant participant : participants) {
-            MatchDetailResponse.ParticipantDetail detail = new MatchDetailResponse.ParticipantDetail();
+            ParticipantDetail detail = new ParticipantDetail();
             detail.setParticipantId(participant.getId());
             detail.setNickname(participant.getUserName());
             detail.setTotalScore(participant.getTotalScore());
@@ -117,6 +117,7 @@ public class MatchServiceImpl implements MatchService {
             logger.debug("参与者详情 - participantId: {}, userName: {}, totalScore: {}, isQuit: {}", 
                         participant.getId(), participant.getUserName(), participant.getTotalScore(), isQuit);
             detail.setUserId(participant.getUser() != null ? participant.getUser().getId() : null);
+            detail.setWechatUserId(participant.getWechatUserId());
             // 优先使用参与者自己的头像，如果没有则使用关联用户的头像
             String avatar = participant.getAvatar();
             if (avatar == null && participant.getUser() != null) {
