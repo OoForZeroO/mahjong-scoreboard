@@ -652,6 +652,10 @@ public class MatchServiceImpl implements MatchService {
 
         // 根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
         String wechatUserId = p.getWechatUserId();
+        if (wechatUserId == null || wechatUserId.trim().isEmpty()) {
+            // 前端可能只传昵称/头像，不传 wechatUserId，则回退到已有的 wechat_user_id
+            wechatUserId = u.getWechatUserId();
+        }
         String nickname = p.getUserName() != null ? p.getUserName() : u.getUserName();
         String avatar = p.getAvatar() != null ? p.getAvatar() : u.getAvatar();
 
@@ -786,6 +790,9 @@ public class MatchServiceImpl implements MatchService {
 
                     // 批量更新时，同样根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
                     String wechatUserId = participant.getWechatUserId();
+                    if (wechatUserId == null || wechatUserId.trim().isEmpty()) {
+                        wechatUserId = existing.getWechatUserId();
+                    }
                     String nickname = participant.getUserName() != null ? participant.getUserName() : existing.getUserName();
                     String avatar = participant.getAvatar() != null ? participant.getAvatar() : existing.getAvatar();
 
