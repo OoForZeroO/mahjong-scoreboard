@@ -636,17 +636,52 @@ public class MatchServiceImpl implements MatchService {
     @Override
     public MatchParticipant updateParticipant(Long id, MatchParticipant p) {
         Optional<MatchParticipant> e = pdao.findById(id);
-        if (e.isPresent()) {
-            MatchParticipant u = e.get();
-            if (p.getUserName() != null) {
-                u.setUserName(p.getUserName());
-            }
-            if (p.getTotalScore() != null) {
-                u.setTotalScore(p.getTotalScore());
-            }
-            return pdao.save(u);
+        if (!e.isPresent()) {
+            return null;
         }
-        return null;
+
+        MatchParticipant u = e.get();
+
+        // 更新基础字段
+        if (p.getUserName() != null) {
+            u.setUserName(p.getUserName());
+        }
+        if (p.getTotalScore() != null) {
+            u.setTotalScore(p.getTotalScore());
+        }
+
+        // 根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
+        String wechatUserId = p.getWechatUserId();
+        String nickname = p.getUserName() != null ? p.getUserName() : u.getUserName();
+        String avatar = p.getAvatar() != null ? p.getAvatar() : u.getAvatar();
+
+        if (wechatUserId != null && !wechatUserId.trim().isEmpty() &&
+            nickname != null && !nickname.trim().isEmpty()) {
+            try {
+                WechatUser wechatUser = wdao.findByUserId(wechatUserId);
+                if (wechatUser == null) {
+                    wechatUser = new WechatUser();
+                    wechatUser.setUserId(wechatUserId);
+                }
+                // 昵称、头像按前端传入覆盖
+                wechatUser.setNickname(nickname);
+                if (avatar != null && !avatar.trim().isEmpty()) {
+                    wechatUser.setAvatar(avatar);
+                }
+                // 个人信息页保存视为已完成注册，标记为非游客
+                wechatUser.setIsVisitor(false);
+                wechatUser = wdao.save(wechatUser);
+
+                // 建立参与者与 WechatUser 的关联
+                u.setUser(wechatUser);
+                // 同步 wechat_user_id 字段，避免历史脏数据
+                u.setWechatUserId(wechatUserId);
+            } catch (Exception ex) {
+                logger.warn("更新参与者时同步 WechatUser 失败, participantId: {}, wechatUserId: {}", id, wechatUserId, ex);
+            }
+        }
+
+        return pdao.save(u);
     }
 
     @Override
@@ -748,6 +783,34 @@ public class MatchServiceImpl implements MatchService {
                     if (participant.getTotalScore() != null) {
                         existing.setTotalScore(participant.getTotalScore());
                     }
+
+                    // 批量更新时，同样根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
+                    String wechatUserId = participant.getWechatUserId();
+                    String nickname = participant.getUserName() != null ? participant.getUserName() : existing.getUserName();
+                    String avatar = participant.getAvatar() != null ? participant.getAvatar() : existing.getAvatar();
+
+                    if (wechatUserId != null && !wechatUserId.trim().isEmpty() &&
+                        nickname != null && !nickname.trim().isEmpty()) {
+                        try {
+                            WechatUser wechatUser = wdao.findByUserId(wechatUserId);
+                            if (wechatUser == null) {
+                                wechatUser = new WechatUser();
+                                wechatUser.setUserId(wechatUserId);
+                            }
+                            wechatUser.setNickname(nickname);
+                            if (avatar != null && !avatar.trim().isEmpty()) {
+                                wechatUser.setAvatar(avatar);
+                            }
+                            wechatUser.setIsVisitor(false);
+                            wechatUser = wdao.save(wechatUser);
+
+                            existing.setUser(wechatUser);
+                            existing.setWechatUserId(wechatUserId);
+                        } catch (Exception ex) {
+                            logger.warn("批量更新参与者时同步 WechatUser 失败, participantId: {}, wechatUserId: {}", participant.getId(), wechatUserId, ex);
+                        }
+                    }
+
                     MatchParticipant updated = pdao.save(existing);
                     updatedParticipants.add(updated);
                 }
