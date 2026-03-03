@@ -619,6 +619,25 @@ public class MatchServiceImpl implements MatchService {
             }
             
             p.setMatch(m);
+            
+            // 唯一约束 (match_id, user_id/wechat_user_id)：若用户已在对局中，直接返回已有参与者，避免重复插入
+            String wechatUserIdKey = (p.getWechatUserId() != null && !p.getWechatUserId().trim().isEmpty())
+                ? p.getWechatUserId().trim() : null;
+            if (wechatUserIdKey != null) {
+                Optional<MatchParticipant> existingByWechat = pdao.findByMatchAndWechatUserId(m, wechatUserIdKey);
+                if (existingByWechat.isPresent()) {
+                    logger.info("User already in match {} (wechatUserId: {}), returning existing participant {}", id, wechatUserIdKey, existingByWechat.get().getId());
+                    return existingByWechat.get();
+                }
+            }
+            if (p.getUser() != null && p.getUser().getId() != null) {
+                Optional<MatchParticipant> existingByUser = pdao.findByMatchAndUser(m, p.getUser());
+                if (existingByUser.isPresent()) {
+                    logger.info("User already in match {} (userId: {}), returning existing participant {}", id, p.getUser().getId(), existingByUser.get().getId());
+                    return existingByUser.get();
+                }
+            }
+            
             MatchParticipant saved = pdao.save(p);
             
             logger.info("Created participant {} in match {} with wechat_user_id: {}, total score: {}", 

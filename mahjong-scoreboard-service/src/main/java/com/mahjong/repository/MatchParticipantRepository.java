@@ -14,4 +14,5 @@ public interface MatchParticipantRepository extends JpaRepository<MatchParticipa
     List<MatchParticipant> findByMatch(Match match);
     List<MatchParticipant> findByUser(WechatUser user);
     Optional<MatchParticipant> findByMatchAndUser(Match match, WechatUser user);
+    Optional<MatchParticipant> findByMatchAndWechatUserId(Match match, String wechatUserId);
 }
