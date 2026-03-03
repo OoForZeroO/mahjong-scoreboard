@@ -15,8 +15,29 @@ public class WechatUserServiceHandler implements WechatUserService {
     @Autowired
     private WechatUserRepository dao;
 
+    /**
+     * 头像地址规范化：
+     * - 去掉前后空格
+     * - 丢弃 wxfile:// 和 http(s)://tmp/ 这类临时地址（返回 null）
+     */
+    private String sanitizeAvatar(String avatar) {
+        if (avatar == null) {
+            return null;
+        }
+        String url = avatar.trim();
+        if (url.isEmpty()) {
+            return null;
+        }
+        // 小程序本地/临时文件路径，不应持久化到数据库
+        if (url.startsWith("wxfile://") || url.contains("://tmp/")) {
+            return null;
+        }
+        return url;
+    }
+
     @Override
     public WechatUser createWechatUser(WechatUser u) {
+        u.setAvatar(sanitizeAvatar(u.getAvatar()));
         return dao.save(u);
     }
 
@@ -48,7 +69,7 @@ public class WechatUserServiceHandler implements WechatUserService {
                 existing.setUsername(u.getUsername());
             }
             if (u.getAvatar() != null) {
-                existing.setAvatar(u.getAvatar());
+                existing.setAvatar(sanitizeAvatar(u.getAvatar()));
             }
             if (u.getIsVisitor() != null) {
                 existing.setIsVisitor(u.getIsVisitor());

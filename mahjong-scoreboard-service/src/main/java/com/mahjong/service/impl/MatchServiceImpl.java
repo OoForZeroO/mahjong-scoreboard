@@ -51,6 +51,26 @@ public class MatchServiceImpl implements MatchService {
     
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * 头像地址规范化：
+     * - 去掉前后空格
+     * - 丢弃 wxfile:// 和 http(s)://tmp/ 这类临时地址（返回 null）
+     */
+    private String sanitizeAvatar(String avatar) {
+        if (avatar == null) {
+            return null;
+        }
+        String url = avatar.trim();
+        if (url.isEmpty()) {
+            return null;
+        }
+        // 小程序本地/临时文件路径，不应作为最终头像返回或持久化
+        if (url.startsWith("wxfile://") || url.contains("://tmp/")) {
+            logger.warn("检测到临时头像地址，将丢弃: {}", url);
+            return null;
+        }
+        return url;
+    }
 
     // 对局相关方法
     @Override
@@ -337,6 +357,9 @@ public class MatchServiceImpl implements MatchService {
                     } else {
                         logger.info("使用MatchParticipant中的信息: 昵称={}, 头像={}", nickname, avatar);
                     }
+
+                    // 对头像地址做规范化处理，避免返回 wxfile://、http://tmp/ 等临时地址
+                    avatar = sanitizeAvatar(avatar);
                     
                     ParticipantScoreInfo scoreInfo = new ParticipantScoreInfo(
                         p.getId(),
@@ -491,6 +514,9 @@ public class MatchServiceImpl implements MatchService {
                     } else {
                         logger.info("使用MatchParticipant中的信息: 昵称={}, 头像={}", nickname, avatar);
                     }
+
+                    // 对头像地址做规范化处理，避免返回 wxfile://、http://tmp/ 等临时地址
+                    avatar = sanitizeAvatar(avatar);
                     
                     ParticipantScoreInfo scoreInfo = new ParticipantScoreInfo(
                         p.getId(),
@@ -614,8 +640,11 @@ public class MatchServiceImpl implements MatchService {
             
             // 处理头像字段
             if (p.getAvatarUrl() != null && !p.getAvatarUrl().trim().isEmpty()) {
-                // 新格式：使用avatarUrl
-                p.setAvatar(p.getAvatarUrl());
+                // 新格式：使用avatarUrl，并对地址进行规范化处理
+                String avatar = sanitizeAvatar(p.getAvatarUrl());
+                if (avatar != null) {
+                    p.setAvatar(avatar);
+                }
             }
             
             p.setMatch(m);
@@ -691,8 +720,9 @@ public class MatchServiceImpl implements MatchService {
                     wechatUser = new WechatUser();
                     wechatUser.setUserId(wechatUserId);
                 }
-                // 昵称、头像按前端传入覆盖
+                // 昵称、头像按前端传入覆盖（头像地址做规范化）
                 wechatUser.setNickname(nickname);
+                avatar = sanitizeAvatar(avatar);
                 if (avatar != null && !avatar.trim().isEmpty()) {
                     wechatUser.setAvatar(avatar);
                 }
@@ -780,8 +810,11 @@ public class MatchServiceImpl implements MatchService {
             
             // 处理头像字段
             if (participant.getAvatarUrl() != null && !participant.getAvatarUrl().trim().isEmpty()) {
-                // 新格式：使用avatarUrl
-                participant.setAvatar(participant.getAvatarUrl());
+                // 新格式：使用avatarUrl，并对地址进行规范化处理
+                String avatar = sanitizeAvatar(participant.getAvatarUrl());
+                if (avatar != null) {
+                    participant.setAvatar(avatar);
+                }
             }
             
             participant.setMatch(match);
@@ -829,6 +862,7 @@ public class MatchServiceImpl implements MatchService {
                                 wechatUser.setUserId(wechatUserId);
                             }
                             wechatUser.setNickname(nickname);
+                            avatar = sanitizeAvatar(avatar);
                             if (avatar != null && !avatar.trim().isEmpty()) {
                                 wechatUser.setAvatar(avatar);
                             }
