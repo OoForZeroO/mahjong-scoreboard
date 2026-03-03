@@ -110,12 +110,29 @@ public class MatchServiceImpl implements MatchService {
             detail.setParticipantId(participant.getId());
             detail.setNickname(participant.getUserName());
             detail.setTotalScore(participant.getTotalScore());
-            detail.setIsVisitor(participant.getUser() == null);
+
+            // isVisitor 以 WechatUser.isVisitor 为准；如果没有关联用户，则按游客处理
+            boolean isVisitor = true;
+            if (participant.getUser() != null) {
+                Boolean flag = participant.getUser().getIsVisitor();
+                isVisitor = flag != null ? flag : false;
+            } else if (participant.getWechatUserId() != null && !participant.getWechatUserId().trim().isEmpty()) {
+                try {
+                    WechatUser wechatUser = wdao.findByUserId(participant.getWechatUserId());
+                    if (wechatUser != null && wechatUser.getIsVisitor() != null) {
+                        isVisitor = wechatUser.getIsVisitor();
+                    }
+                } catch (Exception e) {
+                    logger.warn("根据 wechatUserId 查询 WechatUser 失败以判断是否游客, wechatUserId: {}", participant.getWechatUserId(), e);
+                }
+            }
+            detail.setIsVisitor(isVisitor);
+
             // 从数据库读取isQuit字段
             Boolean isQuit = participant.getIsQuit() != null ? participant.getIsQuit() : false;
             detail.setIsQuit(isQuit);
-            logger.debug("参与者详情 - participantId: {}, userName: {}, totalScore: {}, isQuit: {}", 
-                        participant.getId(), participant.getUserName(), participant.getTotalScore(), isQuit);
+            logger.debug("参与者详情 - participantId: {}, userName: {}, totalScore: {}, isQuit: {}, isVisitor: {}", 
+                        participant.getId(), participant.getUserName(), participant.getTotalScore(), isQuit, isVisitor);
             detail.setUserId(participant.getUser() != null ? participant.getUser().getId() : null);
             detail.setWechatUserId(participant.getWechatUserId());
             // 优先使用参与者自己的头像，如果没有则使用关联用户的头像

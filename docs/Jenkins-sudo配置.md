@@ -1,9 +1,36 @@
 # Jenkins 部署需在服务器上配置 sudo（一次性）
 
-流水线使用 `sudo systemctl restart mahjong-testing`（及 status/journalctl），  
-Jenkins 运行用户须能**免密**执行这些命令，否则会报 “Interactive authentication required” 导致构建失败。
+流水线使用 `sudo systemctl restart mahjong-testing` 等命令。  
+若未配置免密，会报 **`sudo: a password is required`** / **`a terminal is required to read the password`**，脚本误判“服务未运行”导致构建失败。  
+必须在部署目标服务器上为 **Jenkins 运行用户** 配置免密 sudo。
 
-## 在部署目标服务器上执行（root 或已有 sudo 权限）
+---
+
+## 方式一：一键脚本（推荐）
+
+在**部署目标服务器**上以 **root** 执行（脚本会自动检测 Jenkins 用户和 systemctl 路径）：
+
+```bash
+# 若服务器上已有项目代码（例如 Jenkins workspace）
+cd /var/lib/jenkins/workspace/你的任务名/mahjong-scoreboard
+sudo bash docs/jenkins-sudo-setup.sh
+```
+
+或从本机把脚本拷到服务器后执行：
+
+```bash
+# 本机
+scp -P 22 docs/jenkins-sudo-setup.sh root@你的服务器IP:/tmp/
+
+# 服务器
+sudo bash /tmp/jenkins-sudo-setup.sh
+```
+
+脚本会写入 `/etc/sudoers.d/jenkins-mahjong` 并做一次免密测试。
+
+---
+
+## 方式二：手动配置
 
 ### 1. 确认 Jenkins 运行用户与命令路径
 
@@ -51,5 +78,31 @@ sudo -u jenkins sudo -n systemctl restart mahjong-testing
 
 ### 4. 若仍失败
 
-- 看构建日志里失败的那一行是 `systemctl restart` 还是 `sudo systemctl restart`。若是前者，说明流水线用的仍是旧版，需**推送最新 Jenkinsfile 并重新构建**。  
-- 确认 `/etc/sudoers.d/jenkins-mahjong` 里的用户名、路径与 `which systemctl` 一致。
+- 确认 Jenkins 构建的是最新分支（日志里应有 `=== 使用 sudo 重启`）。
+- 确认 `/etc/sudoers.d/jenkins-mahjong` 中的用户名与 `ps aux | grep jenkins` 第一列一致，路径与 `which systemctl` 一致。
+
+---
+
+## 无法拷贝文件时：在服务器上粘贴整段执行
+
+SSH 到服务器后，以 **root** 粘贴并执行下面整段（会自动检测用户与路径并写入 sudoers）：
+
+```bash
+JENKINS_USER=$(ps aux | grep -E '[j]enkins\.war|[j]enkins\.jar' | head -1 | awk '{print $1}')
+[ -z "$JENKINS_USER" ] && JENKINS_USER=jenkins
+SYSTEMCTL=$(command -v systemctl); JOURNALCTL=$(command -v journalctl)
+cat << EOF | tee /etc/sudoers.d/jenkins-mahjong
+Defaults:${JENKINS_USER} !requiretty
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${SYSTEMCTL} restart mahjong-testing
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${SYSTEMCTL} restart mahjong-production
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${SYSTEMCTL} status mahjong-testing*
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${SYSTEMCTL} status mahjong-production*
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${SYSTEMCTL} is-active mahjong-testing
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${SYSTEMCTL} is-active mahjong-production
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${JOURNALCTL} -u mahjong-testing*
+${JENKINS_USER} ALL=(ALL) NOPASSWD: ${JOURNALCTL} -u mahjong-production*
+EOF
+chmod 440 /etc/sudoers.d/jenkins-mahjong
+visudo -c -f /etc/sudoers.d/jenkins-mahjong
+echo "配置完成。Jenkins 用户: $JENKINS_USER"
+```
