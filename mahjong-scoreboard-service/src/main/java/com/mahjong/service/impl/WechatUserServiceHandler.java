@@ -2,6 +2,7 @@ package com.mahjong.service.impl;
 
 import com.mahjong.model.WechatUser;
 import com.mahjong.repository.WechatUserRepository;
+import com.mahjong.service.AvatarUploadService;
 import com.mahjong.service.WechatUserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,9 @@ public class WechatUserServiceHandler implements WechatUserService {
 
     @Autowired
     private WechatUserRepository dao;
+
+    @Autowired
+    private AvatarUploadService avatarUploadService;
 
     /**
      * 头像地址规范化：
@@ -35,9 +39,23 @@ public class WechatUserServiceHandler implements WechatUserService {
         return url;
     }
 
+    /**
+     * 将前端传的头像转为可持久化的 https 地址：临时地址先尝试下载并保存，非临时原样返回。
+     */
+    private String normalizeAvatarForSave(String avatar) {
+        if (avatar == null || avatar.trim().isEmpty()) {
+            return null;
+        }
+        String converted = avatarUploadService.convertTempAvatarUrlToHttps(avatar);
+        if (converted != null) {
+            return converted;
+        }
+        return sanitizeAvatar(avatar);
+    }
+
     @Override
     public WechatUser createWechatUser(WechatUser u) {
-        u.setAvatar(sanitizeAvatar(u.getAvatar()));
+        u.setAvatar(normalizeAvatarForSave(u.getAvatar()));
         return dao.save(u);
     }
 
@@ -69,7 +87,7 @@ public class WechatUserServiceHandler implements WechatUserService {
                 existing.setUsername(u.getUsername());
             }
             if (u.getAvatar() != null) {
-                existing.setAvatar(sanitizeAvatar(u.getAvatar()));
+                existing.setAvatar(normalizeAvatarForSave(u.getAvatar()));
             }
             if (u.getIsVisitor() != null) {
                 existing.setIsVisitor(u.getIsVisitor());

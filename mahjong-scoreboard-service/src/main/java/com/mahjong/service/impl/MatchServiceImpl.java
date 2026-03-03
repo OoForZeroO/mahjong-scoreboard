@@ -9,6 +9,7 @@ import com.mahjong.repository.UserRepository;
 import com.mahjong.repository.WechatUserRepository;
 import com.mahjong.repository.MatchSettlementRepository;
 import com.mahjong.service.MatchService;
+import com.mahjong.service.AvatarUploadService;
 import com.mahjong.dto.ParticipantScoreInfo;
 import com.mahjong.dto.MatchResultResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -45,6 +46,9 @@ public class MatchServiceImpl implements MatchService {
     @Autowired
     private WechatUserRepository wdao;
     
+    @Autowired
+    private AvatarUploadService avatarUploadService;
+    
     // 暂时注释掉MatchSettlementRepository，因为数据库中没有match_settlements表
     // @Autowired
     // private MatchSettlementRepository sdao;
@@ -70,6 +74,20 @@ public class MatchServiceImpl implements MatchService {
             return null;
         }
         return url;
+    }
+
+    /**
+     * 将前端传的头像转为可持久化的 https 地址：临时地址先尝试下载并保存，非临时原样返回。
+     */
+    private String normalizeAvatarForSave(String avatar) {
+        if (avatar == null || avatar.trim().isEmpty()) {
+            return null;
+        }
+        String converted = avatarUploadService.convertTempAvatarUrlToHttps(avatar);
+        if (converted != null) {
+            return converted;
+        }
+        return sanitizeAvatar(avatar);
     }
 
     // 对局相关方法
@@ -640,8 +658,8 @@ public class MatchServiceImpl implements MatchService {
             
             // 处理头像字段
             if (p.getAvatarUrl() != null && !p.getAvatarUrl().trim().isEmpty()) {
-                // 新格式：使用avatarUrl，并对地址进行规范化处理
-                String avatar = sanitizeAvatar(p.getAvatarUrl());
+                // 新格式：使用 avatarUrl，临时地址会转化为 https 后保存
+                String avatar = normalizeAvatarForSave(p.getAvatarUrl());
                 if (avatar != null) {
                     p.setAvatar(avatar);
                 }
@@ -720,9 +738,9 @@ public class MatchServiceImpl implements MatchService {
                     wechatUser = new WechatUser();
                     wechatUser.setUserId(wechatUserId);
                 }
-                // 昵称、头像按前端传入覆盖（头像地址做规范化）
+                // 昵称、头像按前端传入覆盖（临时头像会转化为 https）
                 wechatUser.setNickname(nickname);
-                avatar = sanitizeAvatar(avatar);
+                avatar = normalizeAvatarForSave(avatar);
                 if (avatar != null && !avatar.trim().isEmpty()) {
                     wechatUser.setAvatar(avatar);
                 }
@@ -810,8 +828,8 @@ public class MatchServiceImpl implements MatchService {
             
             // 处理头像字段
             if (participant.getAvatarUrl() != null && !participant.getAvatarUrl().trim().isEmpty()) {
-                // 新格式：使用avatarUrl，并对地址进行规范化处理
-                String avatar = sanitizeAvatar(participant.getAvatarUrl());
+                // 新格式：使用 avatarUrl，临时地址会转化为 https 后保存
+                String avatar = normalizeAvatarForSave(participant.getAvatarUrl());
                 if (avatar != null) {
                     participant.setAvatar(avatar);
                 }
@@ -862,7 +880,7 @@ public class MatchServiceImpl implements MatchService {
                                 wechatUser.setUserId(wechatUserId);
                             }
                             wechatUser.setNickname(nickname);
-                            avatar = sanitizeAvatar(avatar);
+                            avatar = normalizeAvatarForSave(avatar);
                             if (avatar != null && !avatar.trim().isEmpty()) {
                                 wechatUser.setAvatar(avatar);
                             }

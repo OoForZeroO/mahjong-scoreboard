@@ -56,3 +56,10 @@ management:
     db:
       enabled: true
 
+# 头像上传配置（生产：存到固定目录，URL 前缀配为对外域名或 CDN）
+app:
+  upload:
+    avatar-dir: ${UPLOAD_AVATAR_DIR:/opt/yaohufox/uploads/avatar}
+    avatar-url-prefix: ${UPLOAD_AVATAR_URL_PREFIX:https://yaohufox.com/static/avatar}
+    avatar-max-size: ${UPLOAD_AVATAR_MAX_SIZE:2097152}
+
