@@ -748,9 +748,8 @@ public class MatchServiceImpl implements MatchService {
                 wechatUser.setIsVisitor(false);
                 wechatUser = wdao.save(wechatUser);
 
-                // 建立参与者与 WechatUser 的关联
+                // 建立参与者与 WechatUser 的关联（DB 外键 match_participants.user_id -> wechat_users.id）
                 u.setUser(wechatUser);
-                // 同步 wechat_user_id 字段，避免历史脏数据
                 u.setWechatUserId(wechatUserId);
             } catch (Exception ex) {
                 logger.warn("更新参与者时同步 WechatUser 失败, participantId: {}, wechatUserId: {}", id, wechatUserId, ex);
