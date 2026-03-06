@@ -1380,11 +1380,16 @@ public class MatchServiceImpl implements MatchService {
             List<MatchParticipant> allParticipants = pdao.findByMatch(match);
             
             // 如果指定了wechat_user_id，检查该用户是否参与此对局
+            // 同时匹配 wechat_user_id 列与关联的 user.id（wechat_users 主键），兼容历史存 openid 或数字 id 的情况
             if (wechatUserId != null && !wechatUserId.trim().isEmpty()) {
+                String wechatUserIdTrim = wechatUserId.trim();
                 boolean userParticipated = allParticipants.stream()
-                    .anyMatch(p -> wechatUserId.equals(p.getWechatUserId()));
-                
-                // 如果用户没有参与此对局，跳过这个对局
+                    .anyMatch(p -> {
+                        if (wechatUserIdTrim.equals(p.getWechatUserId())) return true;
+                        if (p.getUser() != null && p.getUser().getId() != null
+                            && wechatUserIdTrim.equals(p.getUser().getId().toString())) return true;
+                        return false;
+                    });
                 if (!userParticipated) {
                     continue;
                 }
