@@ -52,10 +52,29 @@ public class WechatMiniController {
         }
     }
 
+    /**
+     * 根据主键 id 查询微信用户。
+     * 路径参数可为数字（wechat_users.id）或临时占位（如 temp_xxx）。非数字或 temp_ 前缀时返回 data: null，便于前端在未登录时统一走 code2session 登录。
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUser(@PathVariable Long id) {
+    public ResponseEntity<?> getUser(@PathVariable String id) {
+        if (id == null || id.trim().isEmpty()) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("code", 400);
+            err.put("message", "id 不能为空");
+            err.put("data", null);
+            return ResponseEntity.badRequest().body(err);
+        }
+        if (id.startsWith("temp_") || !id.trim().matches("\\d+")) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "success");
+            response.put("data", null);
+            return ResponseEntity.ok(response);
+        }
         try {
-            return service.getWechatUserById(id)
+            Long idLong = Long.parseLong(id.trim());
+            return service.getWechatUserById(idLong)
                     .map(user -> {
                         Map<String, Object> response = new HashMap<>();
                         response.put("code", 200);
@@ -70,6 +89,12 @@ public class WechatMiniController {
                         response.put("data", null);
                         return ResponseEntity.ok(response);
                     });
+        } catch (NumberFormatException e) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "success");
+            response.put("data", null);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             Map<String, Object> response = new HashMap<>();
             response.put("code", 500);

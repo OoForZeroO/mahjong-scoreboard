@@ -27,14 +27,16 @@ public class UploadController {
     private AvatarUploadService avatarUploadService;
 
     /**
-     * 上传头像图片。
+     * 上传头像图片。支持两种路径，行为一致：
+     * - POST /api/v1/upload（兼容前端直接调该路径）
+     * - POST /api/v1/upload/avatar
      * 小程序端：wx.chooseMedia 选图后，用 wx.uploadFile 上传，filePath 为临时路径；
      * 接口保存到服务器并返回可公网访问的 URL，前端将该 URL 用于用户/参与者头像字段。
      *
      * @param file 表单字段名需为 file（wx.uploadFile 默认即 file）
-     * @return 成功时 data 为头像 URL（https）；失败时返回 4xx/5xx 及 message
+     * @return 成功时 data 为 { url: "https://..." }；失败时返回 4xx/5xx 及 message
      */
-    @PostMapping("/avatar")
+    @PostMapping(value = {"", "/avatar"})
     public ResponseEntity<Map<String, Object>> uploadAvatar(@RequestParam("file") MultipartFile file) {
         try {
             String url = avatarUploadService.uploadAvatar(file);
