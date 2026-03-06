@@ -155,12 +155,16 @@ public class MatchServiceImpl implements MatchService {
                 detail.setIsVisitor(wechatUser.getIsVisitor() != null ? wechatUser.getIsVisitor() : false);
                 detail.setUserId(wechatUser.getId());
                 detail.setNickname(wechatUser.getNickname());
-                detail.setAvatar(wechatUser.getAvatar() != null ? wechatUser.getAvatar() : participant.getAvatar());
+                // 头像：优先 wechat_users，再 participant 关联的 user，再 match_participants.avatar，避免返回 null 时前端缺图
+                String avatar = pickAvatar(wechatUser, participant);
+                detail.setAvatar(avatar != null ? avatar : "");
             } else {
                 detail.setIsVisitor(true);
                 detail.setUserId(null);
                 detail.setNickname(participant.getUserName());
-                detail.setAvatar(participant.getAvatar());
+                String avatar = participant.getUser() != null ? participant.getUser().getAvatar() : null;
+                if (avatar == null) avatar = participant.getAvatar();
+                detail.setAvatar(avatar != null ? avatar : "");
             }
 
             Boolean isQuit = participant.getIsQuit() != null ? participant.getIsQuit() : false;
@@ -227,6 +231,23 @@ public class MatchServiceImpl implements MatchService {
         } catch (NumberFormatException e) {
             return wdao.findByUserId(wechatUserId);
         }
+    }
+
+    /**
+     * 从 WechatUser 与 MatchParticipant 中选取头像（优先 wechat_users，再 participant.user，再 participant.avatar）。
+     * 返回非空字符串或 null（调用方可用 "" 作为兜底以便接口始终返回头像字段）。
+     */
+    private String pickAvatar(WechatUser wechatUser, MatchParticipant participant) {
+        if (wechatUser != null && wechatUser.getAvatar() != null && !wechatUser.getAvatar().trim().isEmpty()) {
+            return wechatUser.getAvatar();
+        }
+        if (participant != null && participant.getUser() != null && participant.getUser().getAvatar() != null && !participant.getUser().getAvatar().trim().isEmpty()) {
+            return participant.getUser().getAvatar();
+        }
+        if (participant != null && participant.getAvatar() != null && !participant.getAvatar().trim().isEmpty()) {
+            return participant.getAvatar();
+        }
+        return null;
     }
 
     @Override
