@@ -1064,7 +1064,14 @@ public class MatchServiceImpl implements MatchService {
             updatedParticipant.setTotalScore(score.getCumulativeScore());
             pdao.save(updatedParticipant);
         }
-        
+
+        // 批量计分后按对局更新 total_rounds 与状态（与 recordRoundScores 行为一致）
+        for (Map.Entry<Long, Set<Integer>> entry : matchRoundMap.entrySet()) {
+            Long matchId = entry.getKey();
+            int maxRound = entry.getValue().stream().mapToInt(Integer::intValue).max().orElse(0);
+            updateMatchTotalRounds(matchId, maxRound);
+        }
+
         return savedScores;
     }
 
@@ -1481,11 +1488,13 @@ public class MatchServiceImpl implements MatchService {
                 if (roundNumber > currentTotalRounds) {
                     // 使用@Query方法直接执行SQL UPDATE，确保total_rounds字段被更新
                     int updatedRows = dao.updateTotalRounds(matchId, roundNumber);
-                    logger.info("已更新对局 {} 的总轮次为: {} (之前为: {}), 影响行数: {}", 
+                    logger.info("已更新对局 {} 的总轮次为: {} (之前为: {}), 影响行数: {}",
                                matchId, roundNumber, currentTotalRounds, updatedRows);
-                    
+
                     if (updatedRows > 0) {
                         logger.info("对局 {} 的total_rounds更新成功，已在独立事务中提交", matchId);
+                        // 计分后若为准备状态(2)，则更新为进行中(0)，详情页状态会变为「进行中」
+                        dao.setStatusToInProgressIfReady(matchId);
                     } else {
                         logger.error("警告：对局 {} 的total_rounds更新失败，影响行数为0", matchId);
                     }

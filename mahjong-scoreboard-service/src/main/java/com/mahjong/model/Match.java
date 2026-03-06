@@ -26,7 +26,7 @@ public class Match {
     private Long endTime;
 
     @Column(nullable = false)
-    private Integer status = 0; // 0:进行中, 1:已完成
+    private Integer status = 0; // 0:进行中, 1:已完成, 2:准备（计分后会自动从2改为0）
 
     @Column(name = "total_rounds", nullable = false)
     private Integer totalRounds = 0;

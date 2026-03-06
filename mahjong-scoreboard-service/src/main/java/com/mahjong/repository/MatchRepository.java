@@ -18,6 +18,11 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = "UPDATE matches SET total_rounds = :rounds WHERE match_id = :matchId", nativeQuery = true)
     int updateTotalRounds(@Param("matchId") Long matchId, @Param("rounds") Integer rounds);
+
+    /** 计分后：若对局为准备状态(2)，则更新为进行中(0) */
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "UPDATE matches SET status = 0 WHERE match_id = :matchId AND status = 2", nativeQuery = true)
+    int setStatusToInProgressIfReady(@Param("matchId") Long matchId);
     
     // 查询指定时间段内已完成的对局
     @Query("SELECT m FROM Match m WHERE m.status = 1 AND m.endTime >= :startTimestamp AND m.endTime <= :endTimestamp")
