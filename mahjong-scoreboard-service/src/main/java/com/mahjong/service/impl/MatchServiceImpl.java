@@ -688,8 +688,24 @@ public class MatchServiceImpl implements MatchService {
             
             p.setMatch(m);
             
-            // 唯一约束 (match_id, user_id/wechat_user_id)：若用户已在对局中，直接返回已有参与者，避免重复插入
+            // 根据 wechatUserId 解析并关联 wechat_users，写入 user_id 与 wechat_user_id，避免表中人员 ID 为空
             String wechatUserIdKey = (p.getWechatUserId() != null && !p.getWechatUserId().trim().isEmpty())
+                ? p.getWechatUserId().trim() : null;
+            if (wechatUserIdKey == null && p.getUser() != null && p.getUser().getUserId() != null) {
+                wechatUserIdKey = p.getUser().getUserId().trim();
+            }
+            if (wechatUserIdKey != null) {
+                WechatUser wechatUser = resolveWechatUser(wechatUserIdKey);
+                if (wechatUser != null) {
+                    p.setUser(wechatUser);
+                    p.setWechatUserId(wechatUser.getId().toString());
+                } else {
+                    p.setWechatUserId(wechatUserIdKey);
+                }
+            }
+            
+            // 唯一约束 (match_id, user_id/wechat_user_id)：若用户已在对局中，直接返回已有参与者，避免重复插入
+            wechatUserIdKey = (p.getWechatUserId() != null && !p.getWechatUserId().trim().isEmpty())
                 ? p.getWechatUserId().trim() : null;
             if (wechatUserIdKey != null) {
                 Optional<MatchParticipant> existingByWechat = pdao.findByMatchAndWechatUserId(m, wechatUserIdKey);
