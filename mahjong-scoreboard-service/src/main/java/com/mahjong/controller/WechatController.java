@@ -1,6 +1,8 @@
 package com.mahjong.controller;
 
 import com.mahjong.service.WechatQRCodeService;
+import com.mahjong.service.WechatAuthService;
+import com.mahjong.dto.WechatLoginResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,9 @@ public class WechatController {
 
     @Autowired
     private WechatQRCodeService wechatQRCodeService;
+
+    @Autowired
+    private WechatAuthService wechatAuthService;
 
     /**
      * 获取微信 access_token
@@ -54,6 +59,26 @@ public class WechatController {
         } catch (Exception e) {
             logger.error("获取access_token异常", e);
             return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "获取access_token失败: " + e.getMessage());
+        }
+    }
+
+    /** Code2Session login: code -> openid, find or create wechat user, return wechatUserId and user info. */
+    @PostMapping("/code2session")
+    public ResponseEntity<?> code2session(@RequestBody Map<String, String> body) {
+        String code = body != null ? body.get("code") : null;
+        try {
+            WechatLoginResponse data = wechatAuthService.loginByCode(code);
+            Map<String, Object> response = new HashMap<>();
+            response.put("code", 200);
+            response.put("message", "success");
+            response.put("data", data);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            logger.warn("code2session 参数或微信返回错误: {}", e.getMessage());
+            return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            logger.error("code2session 异常", e);
+            return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "登录失败: " + e.getMessage());
         }
     }
 
