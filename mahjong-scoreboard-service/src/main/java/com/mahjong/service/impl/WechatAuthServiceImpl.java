@@ -66,7 +66,12 @@ public class WechatAuthServiceImpl implements WechatAuthService {
                 throw new IllegalArgumentException("微信未返回 openid");
             }
             String openid = root.get("openid").asText();
-            WechatUser user = findOrCreateByOpenid(openid);
+            String unionid = root.has("unionid") ? root.get("unionid").asText(null) : null;
+
+            WechatUser user = findOrCreateByWeChatIdentity(appId, openid, unionid);
+            user.setLastLoginAt(System.currentTimeMillis());
+            wechatUserRepository.save(user);
+
             return new WechatLoginResponse(
                     user.getId(),
                     user.getNickname(),
@@ -82,20 +87,67 @@ public class WechatAuthServiceImpl implements WechatAuthService {
     }
 
     /**
-     * 按 openid（存 wechat_users.user_id）查用户，不存在则新建。
+     * 生成统一身份键：
+     * - 有 unionid: unionid:{unionid}
+     * - 否则: openid:{appId}:{openid}
      */
-    private WechatUser findOrCreateByOpenid(String openid) {
-        WechatUser user = wechatUserRepository.findByUserId(openid);
-        if (user != null) {
-            logger.debug("已存在用户 openid={}, wechatUserId={}", openid, user.getId());
-            return user;
+    private String buildIdentityKey(String appId, String openid, String unionid) {
+        if (unionid != null && !unionid.isEmpty()) {
+            return "unionid:" + unionid;
         }
-        user = new WechatUser();
-        user.setUserId(openid);
-        user.setNickname("微信用户");
-        user.setIsVisitor(true);
-        user = wechatUserRepository.save(user);
-        logger.info("新建微信用户 openid={}, wechatUserId={}", openid, user.getId());
+        if (openid == null || openid.isEmpty()) {
+            return null;
+        }
+        if (appId == null || appId.isEmpty()) {
+            return "openid:" + openid;
+        }
+        return "openid:" + appId + ":" + openid;
+    }
+
+    /**
+     * 按 identity_key 查找或创建用户：
+     * - 优先按 identity_key 查
+     * - 兼容老数据：identity_key 为空时，退化为按 user_id(openid) 查
+     * - 不重复插入，避免 user_id 唯一约束冲突
+     */
+    private WechatUser findOrCreateByWeChatIdentity(String appId, String openid, String unionid) {
+        String identityKey = buildIdentityKey(appId, openid, unionid);
+        WechatUser user = null;
+
+        if (identityKey != null) {
+            user = wechatUserRepository.findByIdentityKey(identityKey);
+            if (user != null) {
+                logger.debug("通过 identity_key 命中微信用户 identityKey={}, wechatUserId={}", identityKey, user.getId());
+            }
+        }
+
+        if (user == null && openid != null && !openid.isEmpty()) {
+            user = wechatUserRepository.findByUserId(openid);
+            if (user != null) {
+                logger.debug("通过历史 user_id(openid) 命中微信用户 openid={}, wechatUserId={}", openid, user.getId());
+            }
+        }
+
+        if (user == null) {
+            user = new WechatUser();
+            user.setNickname("微信用户");
+            user.setIsVisitor(true);
+            logger.info("创建新的微信用户记录，openid={}, unionid={}", openid, unionid);
+        }
+
+        // 每次登录都回填/更新基础微信身份字段
+        user.setAppId(appId);
+        if (openid != null && !openid.isEmpty()) {
+            user.setOpenid(openid);
+            user.setUserId(openid);
+        }
+        if (unionid != null && !unionid.isEmpty()) {
+            user.setUnionid(unionid);
+        }
+        if (identityKey != null) {
+            user.setIdentityKey(identityKey);
+        }
+
         return user;
     }
 }

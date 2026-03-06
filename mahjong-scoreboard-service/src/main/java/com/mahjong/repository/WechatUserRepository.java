@@ -8,4 +8,7 @@ import org.springframework.stereotype.Repository;
 public interface WechatUserRepository extends JpaRepository<WechatUser, Long> {
     WechatUser findByUserId(String userId);
     boolean existsByUserId(String userId);
+
+    WechatUser findByIdentityKey(String identityKey);
+    boolean existsByIdentityKey(String identityKey);
 }
