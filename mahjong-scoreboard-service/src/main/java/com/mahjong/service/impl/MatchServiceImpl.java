@@ -750,47 +750,46 @@ public class MatchServiceImpl implements MatchService {
 
         MatchParticipant u = e.get();
 
-        // 只更新昵称/头像；总分由计分接口维护，替换扫码用户时不得覆盖，否则会丢失原手动添加用户的本局累计分
-        if (p.getUserName() != null) {
-            u.setUserName(p.getUserName());
-        }
-        // 不根据请求体更新 totalScore，替换 = 同一参与位继承原总分与轮次得分
+        // 不根据请求体更新 totalScore，替换时同一参与位继承原总分与轮次得分
         // if (p.getTotalScore() != null) { u.setTotalScore(p.getTotalScore()); }
 
-        // 根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
+        // 根据 wechatUserId 绑定扫码者：用扫码者的身份、昵称、头像完全取代该参与位（保留该位总分与轮次）
         String wechatUserId = p.getWechatUserId();
         if (wechatUserId == null || wechatUserId.trim().isEmpty()) {
-            // 前端可能只传昵称/头像，不传 wechatUserId，则回退到已有的 wechat_user_id
             wechatUserId = u.getWechatUserId();
         }
-        String nickname = p.getUserName() != null ? p.getUserName() : u.getUserName();
-        String avatar = p.getAvatar() != null ? p.getAvatar() : u.getAvatar();
-
-        if (wechatUserId != null && !wechatUserId.trim().isEmpty() &&
-            nickname != null && !nickname.trim().isEmpty()) {
+        if (wechatUserId != null && !wechatUserId.trim().isEmpty()) {
             try {
                 WechatUser wechatUser = resolveWechatUser(wechatUserId);
                 if (wechatUser == null) {
                     wechatUser = new WechatUser();
                     wechatUser.setUserId(wechatUserId);
                 }
-                // 昵称、头像按前端传入覆盖（临时头像会转化为 https）
-                wechatUser.setNickname(nickname);
-                avatar = normalizeAvatarForSave(avatar);
-                if (avatar != null && !avatar.trim().isEmpty()) {
-                    wechatUser.setAvatar(avatar);
+                // 仅用请求体里的昵称/头像更新 wechat_users，不拿原参与位的昵称/头像去覆盖扫码者
+                if (p.getUserName() != null && !p.getUserName().trim().isEmpty()) {
+                    wechatUser.setNickname(p.getUserName().trim());
                 }
-                // 个人信息页保存视为已完成注册，标记为非游客
+                if (p.getAvatar() != null && !p.getAvatar().trim().isEmpty()) {
+                    String avatar = normalizeAvatarForSave(p.getAvatar());
+                    if (avatar != null) wechatUser.setAvatar(avatar);
+                }
                 wechatUser.setIsVisitor(false);
                 wechatUser = wdao.save(wechatUser);
 
-                // 建立参与者与 WechatUser 的关联（DB 外键 match_participants.user_id -> wechat_users.id）
+                // 参与位用扫码者的身份与展示信息完全替换（总分与轮次保留）
                 u.setUser(wechatUser);
                 u.setWechatUserId(wechatUser.getId().toString());
+                u.setUserName(wechatUser.getNickname() != null ? wechatUser.getNickname() : u.getUserName());
+                u.setAvatar(wechatUser.getAvatar() != null ? wechatUser.getAvatar() : u.getAvatar());
             } catch (Exception ex) {
                 logger.warn("更新参与者时同步 WechatUser 失败, participantId: {}, wechatUserId: {}", id, wechatUserId, ex);
             }
+        } else {
+            // 未传 wechatUserId 时仅更新昵称/头像（如个人资料页编辑）
+            if (p.getUserName() != null) u.setUserName(p.getUserName());
+            if (p.getAvatar() != null) u.setAvatar(p.getAvatar());
         }
+
 
         return pdao.save(u);
     }
@@ -891,41 +890,41 @@ public class MatchServiceImpl implements MatchService {
                 Optional<MatchParticipant> existingOpt = pdao.findById(participant.getId());
                 if (existingOpt.isPresent()) {
                     MatchParticipant existing = existingOpt.get();
-                    if (participant.getUserName() != null) {
-                        existing.setUserName(participant.getUserName());
-                    }
-                    // 不按请求体覆盖 totalScore，替换扫码用户时保留原参与位的累计分
+                    // 不按请求体覆盖 totalScore，替换时保留原参与位累计分
                     // if (participant.getTotalScore() != null) { existing.setTotalScore(participant.getTotalScore()); }
 
-                    // 批量更新时，同样根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
                     String wechatUserId = participant.getWechatUserId();
                     if (wechatUserId == null || wechatUserId.trim().isEmpty()) {
                         wechatUserId = existing.getWechatUserId();
                     }
-                    String nickname = participant.getUserName() != null ? participant.getUserName() : existing.getUserName();
-                    String avatar = participant.getAvatar() != null ? participant.getAvatar() : existing.getAvatar();
-
-                    if (wechatUserId != null && !wechatUserId.trim().isEmpty() &&
-                        nickname != null && !nickname.trim().isEmpty()) {
+                    if (wechatUserId != null && !wechatUserId.trim().isEmpty()) {
                         try {
                             WechatUser wechatUser = resolveWechatUser(wechatUserId);
                             if (wechatUser == null) {
                                 wechatUser = new WechatUser();
                                 wechatUser.setUserId(wechatUserId);
                             }
-                            wechatUser.setNickname(nickname);
-                            avatar = normalizeAvatarForSave(avatar);
-                            if (avatar != null && !avatar.trim().isEmpty()) {
-                                wechatUser.setAvatar(avatar);
+                            // 仅用请求体昵称/头像更新 wechat_users，不拿原参与位覆盖扫码者
+                            if (participant.getUserName() != null && !participant.getUserName().trim().isEmpty()) {
+                                wechatUser.setNickname(participant.getUserName().trim());
+                            }
+                            if (participant.getAvatar() != null && !participant.getAvatar().trim().isEmpty()) {
+                                String avatar = normalizeAvatarForSave(participant.getAvatar());
+                                if (avatar != null) wechatUser.setAvatar(avatar);
                             }
                             wechatUser.setIsVisitor(false);
                             wechatUser = wdao.save(wechatUser);
 
                             existing.setUser(wechatUser);
                             existing.setWechatUserId(wechatUser.getId().toString());
+                            existing.setUserName(wechatUser.getNickname() != null ? wechatUser.getNickname() : existing.getUserName());
+                            existing.setAvatar(wechatUser.getAvatar() != null ? wechatUser.getAvatar() : existing.getAvatar());
                         } catch (Exception ex) {
                             logger.warn("批量更新参与者时同步 WechatUser 失败, participantId: {}, wechatUserId: {}", participant.getId(), wechatUserId, ex);
                         }
+                    } else {
+                        if (participant.getUserName() != null) existing.setUserName(participant.getUserName());
+                        if (participant.getAvatar() != null) existing.setAvatar(participant.getAvatar());
                     }
 
                     MatchParticipant updated = pdao.save(existing);
