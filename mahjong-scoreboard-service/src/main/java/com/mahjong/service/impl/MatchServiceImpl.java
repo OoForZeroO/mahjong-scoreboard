@@ -750,13 +750,12 @@ public class MatchServiceImpl implements MatchService {
 
         MatchParticipant u = e.get();
 
-        // 更新基础字段
+        // 只更新昵称/头像；总分由计分接口维护，替换扫码用户时不得覆盖，否则会丢失原手动添加用户的本局累计分
         if (p.getUserName() != null) {
             u.setUserName(p.getUserName());
         }
-        if (p.getTotalScore() != null) {
-            u.setTotalScore(p.getTotalScore());
-        }
+        // 不根据请求体更新 totalScore，替换 = 同一参与位继承原总分与轮次得分
+        // if (p.getTotalScore() != null) { u.setTotalScore(p.getTotalScore()); }
 
         // 根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
         String wechatUserId = p.getWechatUserId();
@@ -770,7 +769,7 @@ public class MatchServiceImpl implements MatchService {
         if (wechatUserId != null && !wechatUserId.trim().isEmpty() &&
             nickname != null && !nickname.trim().isEmpty()) {
             try {
-                WechatUser wechatUser = wdao.findByUserId(wechatUserId);
+                WechatUser wechatUser = resolveWechatUser(wechatUserId);
                 if (wechatUser == null) {
                     wechatUser = new WechatUser();
                     wechatUser.setUserId(wechatUserId);
@@ -787,7 +786,7 @@ public class MatchServiceImpl implements MatchService {
 
                 // 建立参与者与 WechatUser 的关联（DB 外键 match_participants.user_id -> wechat_users.id）
                 u.setUser(wechatUser);
-                u.setWechatUserId(wechatUserId);
+                u.setWechatUserId(wechatUser.getId().toString());
             } catch (Exception ex) {
                 logger.warn("更新参与者时同步 WechatUser 失败, participantId: {}, wechatUserId: {}", id, wechatUserId, ex);
             }
@@ -895,9 +894,8 @@ public class MatchServiceImpl implements MatchService {
                     if (participant.getUserName() != null) {
                         existing.setUserName(participant.getUserName());
                     }
-                    if (participant.getTotalScore() != null) {
-                        existing.setTotalScore(participant.getTotalScore());
-                    }
+                    // 不按请求体覆盖 totalScore，替换扫码用户时保留原参与位的累计分
+                    // if (participant.getTotalScore() != null) { existing.setTotalScore(participant.getTotalScore()); }
 
                     // 批量更新时，同样根据 wechatUserId 同步 / 创建 WechatUser，并标记为非游客
                     String wechatUserId = participant.getWechatUserId();
@@ -910,7 +908,7 @@ public class MatchServiceImpl implements MatchService {
                     if (wechatUserId != null && !wechatUserId.trim().isEmpty() &&
                         nickname != null && !nickname.trim().isEmpty()) {
                         try {
-                            WechatUser wechatUser = wdao.findByUserId(wechatUserId);
+                            WechatUser wechatUser = resolveWechatUser(wechatUserId);
                             if (wechatUser == null) {
                                 wechatUser = new WechatUser();
                                 wechatUser.setUserId(wechatUserId);
@@ -924,7 +922,7 @@ public class MatchServiceImpl implements MatchService {
                             wechatUser = wdao.save(wechatUser);
 
                             existing.setUser(wechatUser);
-                            existing.setWechatUserId(wechatUserId);
+                            existing.setWechatUserId(wechatUser.getId().toString());
                         } catch (Exception ex) {
                             logger.warn("批量更新参与者时同步 WechatUser 失败, participantId: {}, wechatUserId: {}", participant.getId(), wechatUserId, ex);
                         }
