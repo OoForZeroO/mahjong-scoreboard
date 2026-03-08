@@ -5,6 +5,8 @@ import com.mahjong.repository.MatchRepository;
 import com.mahjong.repository.MatchParticipantRepository;
 import com.mahjong.repository.RoundScoreRepository;
 import com.mahjong.repository.MatchResultRepository;
+import com.mahjong.repository.UserMatchStatsRepository;
+import com.mahjong.repository.UserMonthlyStatsRepository;
 import com.mahjong.repository.UserRepository;
 import com.mahjong.repository.WechatUserRepository;
 import com.mahjong.repository.MatchSettlementRepository;
@@ -20,6 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 
 @Service
@@ -38,6 +43,12 @@ public class MatchServiceImpl implements MatchService {
 
     @Autowired
     private MatchResultRepository mdao;
+
+    @Autowired
+    private UserMatchStatsRepository userMatchStatsRepository;
+
+    @Autowired
+    private UserMonthlyStatsRepository userMonthlyStatsRepository;
 
 
     @Autowired
@@ -136,6 +147,7 @@ public class MatchServiceImpl implements MatchService {
         logger.info("获取对局详情 - matchId: {}, currentRound: {}", matchId, currentRound);
         response.setCurrentRound(currentRound);
         response.setMatchStatus(match.getStatus());
+        response.setSettlementMultiplier(match.getSettlementMultiplier());
         response.setCreateTime(match.getCreateTime());
         response.setUpdateTime(match.getUpdateTime());
         
@@ -433,6 +445,7 @@ public class MatchServiceImpl implements MatchService {
             Match savedMatch = dao.save(u);
             logger.info("Match保存成功，matchId: {}", savedMatch.getMatchId());
             
+            saveUserMatchStatsAndUpdateMonthlyStats(savedMatch, ps, w);
             logger.info("=== 收盘对局完成 ===");
             return savedMatch;
         }
@@ -590,10 +603,103 @@ public class MatchServiceImpl implements MatchService {
             Match savedMatch = dao.save(u);
             logger.info("Match保存成功，matchId: {}", savedMatch.getMatchId());
             
+            saveUserMatchStatsAndUpdateMonthlyStats(savedMatch, ps, w);
             logger.info("=== 收盘对局完成 ===");
             return savedMatch;
         }
         return null;
+    }
+
+    /** 写入 user_match_stats 并更新 user_monthly_stats；重跑收盘时先删旧汇总再写入并回滚月度。 */
+    private void saveUserMatchStatsAndUpdateMonthlyStats(Match match, List<MatchParticipant> participants, MatchParticipant winner) {
+        if (match == null || participants == null) return;
+        Long matchId = match.getMatchId();
+        Long matchEndTime = match.getEndTime() != null ? match.getEndTime() : System.currentTimeMillis();
+        double multiplier = (match.getSettlementMultiplier() != null && match.getSettlementMultiplier() > 0)
+                ? match.getSettlementMultiplier() : 1.0;
+        int yearMonth = yearMonthFromMatchEndTime(matchEndTime);
+
+        List<UserMatchStats> oldStats = userMatchStatsRepository.findByMatchIdIn(Collections.singletonList(matchId));
+        for (UserMatchStats old : oldStats) {
+            subtractFromMonthlyStats(old.getUserId(), yearMonthFromMatchEndTime(old.getMatchEndTime()), old);
+        }
+        userMatchStatsRepository.deleteByMatchId(matchId);
+
+        for (MatchParticipant p : participants) {
+            WechatUser user = p.getUser();
+            if (user == null || user.getId() == null) continue;
+            Long userId = user.getId();
+            int totalScore = p.getTotalScore() != null ? p.getTotalScore() : 0;
+            int finalScore = (int) Math.round(totalScore * multiplier);
+            boolean isWinner = p.equals(winner);
+            UserMatchStats ums = new UserMatchStats();
+            ums.setUserId(userId);
+            ums.setMatchId(matchId);
+            ums.setParticipantId(p.getId());
+            ums.setTotalScore(totalScore);
+            ums.setFinalScore(finalScore);
+            ums.setSettlementMultiplier(multiplier);
+            ums.setIsWinner(isWinner);
+            ums.setMatchEndTime(matchEndTime);
+            userMatchStatsRepository.save(ums);
+            addToMonthlyStats(userId, yearMonth, totalScore, finalScore, isWinner);
+        }
+        logger.info("已写入 user_match_stats 并更新 user_monthly_stats，matchId: {}", matchId);
+    }
+
+    private static int yearMonthFromMatchEndTime(long matchEndTime) {
+        LocalDate d = LocalDate.ofInstant(Instant.ofEpochMilli(matchEndTime), ZoneId.systemDefault());
+        return d.getYear() * 100 + d.getMonthValue();
+    }
+
+    private void subtractFromMonthlyStats(Long userId, int yearMonth, UserMatchStats old) {
+        Optional<UserMonthlyStats> opt = userMonthlyStatsRepository.findByUserIdAndYearMonth(userId, yearMonth);
+        if (!opt.isPresent()) return;
+        UserMonthlyStats ms = opt.get();
+        ms.setTotalMatches(Math.max(0, ms.getTotalMatches() - 1));
+        if (Boolean.TRUE.equals(old.getIsWinner())) {
+            ms.setWinMatches(Math.max(0, ms.getWinMatches() - 1));
+            ms.setWinTotalScore(ms.getWinTotalScore() - (old.getTotalScore() != null ? old.getTotalScore() : 0));
+            ms.setWinTotalMultiplierScore(Math.max(0.0, (ms.getWinTotalMultiplierScore() != null ? ms.getWinTotalMultiplierScore() : 0.0) - (old.getFinalScore() != null ? old.getFinalScore() : 0)));
+        } else {
+            ms.setLoseMatches(Math.max(0, ms.getLoseMatches() - 1));
+            ms.setLoseTotalScore(ms.getLoseTotalScore() - (old.getTotalScore() != null ? old.getTotalScore() : 0));
+            ms.setLoseTotalMultiplierScore(Math.max(0.0, (ms.getLoseTotalMultiplierScore() != null ? ms.getLoseTotalMultiplierScore() : 0.0) - (old.getFinalScore() != null ? old.getFinalScore() : 0)));
+        }
+        ms.setTotalScore(Math.max(0, ms.getTotalScore() - (old.getTotalScore() != null ? old.getTotalScore() : 0)));
+        ms.setTotalMultiplierScore(Math.max(0.0, (ms.getTotalMultiplierScore() != null ? ms.getTotalMultiplierScore() : 0.0) - (old.getFinalScore() != null ? old.getFinalScore() : 0)));
+        userMonthlyStatsRepository.save(ms);
+    }
+
+    private void addToMonthlyStats(Long userId, int yearMonth, int totalScore, int finalScore, boolean isWinner) {
+        UserMonthlyStats ms = userMonthlyStatsRepository.findByUserIdAndYearMonth(userId, yearMonth).orElseGet(() -> {
+            UserMonthlyStats m = new UserMonthlyStats();
+            m.setUserId(userId);
+            m.setYearMonth(yearMonth);
+            m.setTotalMatches(0);
+            m.setWinMatches(0);
+            m.setLoseMatches(0);
+            m.setTotalScore(0);
+            m.setTotalMultiplierScore(0.0);
+            m.setWinTotalScore(0);
+            m.setWinTotalMultiplierScore(0.0);
+            m.setLoseTotalScore(0);
+            m.setLoseTotalMultiplierScore(0.0);
+            return m;
+        });
+        ms.setTotalMatches(ms.getTotalMatches() + 1);
+        ms.setTotalScore(ms.getTotalScore() + totalScore);
+        ms.setTotalMultiplierScore(ms.getTotalMultiplierScore() + finalScore);
+        if (isWinner) {
+            ms.setWinMatches(ms.getWinMatches() + 1);
+            ms.setWinTotalScore(ms.getWinTotalScore() + totalScore);
+            ms.setWinTotalMultiplierScore(ms.getWinTotalMultiplierScore() + finalScore);
+        } else {
+            ms.setLoseMatches(ms.getLoseMatches() + 1);
+            ms.setLoseTotalScore(ms.getLoseTotalScore() + totalScore);
+            ms.setLoseTotalMultiplierScore(ms.getLoseTotalMultiplierScore() + finalScore);
+        }
+        userMonthlyStatsRepository.save(ms);
     }
 
     @Override
@@ -636,6 +742,14 @@ public class MatchServiceImpl implements MatchService {
         } else {
             // 进行中的对局不需要删除对局结果记录（因为还没有创建）
             logger.info("Skipping match results deletion for ongoing matchId: {} with status: {}", id, matchStatus);
+        }
+        
+        // 若为已完成对局，先按 user_match_stats 回滚 user_monthly_stats，再删对局（CASCADE 会删 user_match_stats）
+        if (match.getStatus() != null && match.getStatus() == 1) {
+            List<UserMatchStats> oldStats = userMatchStatsRepository.findByMatchIdIn(Collections.singletonList(match.getMatchId()));
+            for (UserMatchStats old : oldStats) {
+                subtractFromMonthlyStats(old.getUserId(), yearMonthFromMatchEndTime(old.getMatchEndTime()), old);
+            }
         }
         
         // 4. 删除对局结算记录（如果存在）
@@ -1452,9 +1566,17 @@ public class MatchServiceImpl implements MatchService {
             MatchResult result = resultOpt.get();
             logger.info("找到对局结果，matchId: {}, winnerId: {}", matchId, result.getWinner() != null ? result.getWinner().getId() : "无");
             
+            // 从 Match 表获取 settlement_multiplier（对局收盘时设置的倍率）
+            Double settlementMultiplier = null;
+            Optional<Match> matchOpt = dao.findById(matchId);
+            if (matchOpt.isPresent() && matchOpt.get().getSettlementMultiplier() != null) {
+                settlementMultiplier = matchOpt.get().getSettlementMultiplier();
+            }
+            
             // 构建响应对象
             MatchResultResponse response = new MatchResultResponse();
             response.setMatchId(result.getMatchId());
+            response.setSettlementMultiplier(settlementMultiplier);
             response.setWinnerId(result.getWinner() != null ? result.getWinner().getId() : null);
             response.setWinnerNickname(result.getWinner() != null ? result.getWinner().getUserName() : null);
             response.setWinnerAvatar(result.getWinner() != null ? result.getWinner().getAvatar() : null);

@@ -30,6 +30,9 @@ public class MatchResultResponse {
     @JsonProperty("totalDuration")
     private Long totalDuration;
     
+    @JsonProperty("settlementMultiplier")
+    private Double settlementMultiplier;
+    
     @JsonProperty("totalScores")
     private String totalScores; // JSON字符串
     
@@ -117,6 +120,14 @@ public class MatchResultResponse {
     
     public Long getTotalDuration() {
         return totalDuration;
+    }
+    
+    public Double getSettlementMultiplier() {
+        return settlementMultiplier;
+    }
+    
+    public void setSettlementMultiplier(Double settlementMultiplier) {
+        this.settlementMultiplier = settlementMultiplier;
     }
     
     public void setTotalDuration(Long totalDuration) {

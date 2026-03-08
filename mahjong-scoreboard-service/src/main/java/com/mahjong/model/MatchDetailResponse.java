@@ -25,6 +25,9 @@ public class MatchDetailResponse {
     @JsonProperty("matchStatus")
     private Integer matchStatus; // 0:进行中, 1:已完成
     
+    @JsonProperty("settlementMultiplier")
+    private Double settlementMultiplier; // 收盘倍率
+    
     @JsonProperty("createTime")
     private Long createTime;
     
@@ -81,6 +84,14 @@ public class MatchDetailResponse {
     
     public void setMatchStatus(Integer matchStatus) {
         this.matchStatus = matchStatus;
+    }
+    
+    public Double getSettlementMultiplier() {
+        return settlementMultiplier;
+    }
+    
+    public void setSettlementMultiplier(Double settlementMultiplier) {
+        this.settlementMultiplier = settlementMultiplier;
     }
     
     public Long getCreateTime() {

@@ -1,13 +1,10 @@
 package com.mahjong.service.impl;
 
 import com.mahjong.dto.MonthlyStatisticsResponse;
-import com.mahjong.dto.ParticipantScoreInfo;
 import com.mahjong.dto.PlayerScoreInfo;
 import com.mahjong.model.*;
 import com.mahjong.repository.*;
 import com.mahjong.service.StatisticsService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,18 +27,13 @@ public class StatisticsServiceImpl implements StatisticsService {
     private static final Logger logger = LoggerFactory.getLogger(StatisticsServiceImpl.class);
 
     @Autowired
-    private MatchResultRepository matchResultRepository;
-
-    @Autowired
-    private MatchParticipantRepository participantRepository;
-
-    @Autowired
     private WechatUserRepository wechatUserRepository;
-    
-    @Autowired
-    private MatchRepository matchRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private UserMatchStatsRepository userMatchStatsRepository;
+
+    @Autowired
+    private UserMonthlyStatsRepository userMonthlyStatsRepository;
 
     @Override
     public MonthlyStatisticsResponse getMonthlyStatistics(String wechatUserId, Integer year, Integer month) {
@@ -137,168 +130,89 @@ public class StatisticsServiceImpl implements StatisticsService {
                 logger.info("查询全年统计，时间范围：{} - {}", startTimestamp, endTimestamp);
             }
 
-            // 3. 查询该用户在该月完成的对局
-            List<MatchParticipant> participants = participantRepository.findByUser(wechatUser);
-            logger.info("找到参与对局记录数：{}", participants.size());
+            // 3. 从 user_match_stats 按时间范围查询（或单月时优先从 user_monthly_stats 取）
+            List<UserMatchStats> myStats = userMatchStatsRepository.findByUserIdAndMatchEndTimeBetweenOrderByMatchEndTimeAsc(
+                    id, startTimestamp, endTimestamp);
+            logger.info("user_match_stats 记录数：{}", myStats.size());
 
-            // 4. 筛选出该月完成的对局，并统计
-            int totalMatches = 0;
-            int winMatches = 0;
-            int loseMatches = 0;
-            int totalScore = 0;
-            double totalMultiplierScore = 0.0;
-            int winTotalScore = 0;
-            double winTotalMultiplierScore = 0.0;
-            int loseTotalScore = 0;
-            double loseTotalMultiplierScore = 0.0;
+            int totalMatches;
+            int winMatches;
+            int loseMatches;
+            int totalScore;
+            double totalMultiplierScore;
+            int winTotalScore;
+            double winTotalMultiplierScore;
+            int loseTotalScore;
+            double loseTotalMultiplierScore;
 
-            for (MatchParticipant participant : participants) {
-                Match match = participant.getMatch();
-                if (match == null) {
-                    continue;
-                }
-
-                // 检查对局是否在该月内完成
-                Long endTime = match.getEndTime();
-                if (endTime == null || endTime < startTimestamp || endTime > endTimestamp) {
-                    continue;
-                }
-
-                // 检查对局是否已完成（状态为1）
-                if (match.getStatus() == null || match.getStatus() != 1) {
-                    continue;
-                }
-
-                totalMatches++;
-
-                // 获取倍率
-                Double multiplier = match.getSettlementMultiplier();
-                if (multiplier == null || multiplier <= 0) {
-                    multiplier = 1.0;
-                }
-
-                // 计算该对局的总分
-                int matchScore = participant.getTotalScore() != null ? participant.getTotalScore() : 0;
-                totalScore += matchScore;
-                totalMultiplierScore += matchScore * multiplier;
-
-                // 判断胜负（从total_scores JSON中解析，计算最终得分）
-                Optional<MatchResult> matchResultOpt = matchResultRepository.findByMatchId(match.getMatchId());
-                if (matchResultOpt.isPresent()) {
-                    MatchResult matchResult = matchResultOpt.get();
-                    try {
-                        String totalScoresJson = matchResult.getTotalScores();
-                        if (totalScoresJson != null && !totalScoresJson.trim().isEmpty()) {
-                            List<ParticipantScoreInfo> scoreInfos = objectMapper.readValue(
-                                totalScoresJson, 
-                                new TypeReference<List<ParticipantScoreInfo>>() {}
-                            );
-                            
-                            // 找出最高分
-                            int maxFinalScore = Integer.MIN_VALUE;
-                            for (ParticipantScoreInfo info : scoreInfos) {
-                                if (info.getFinalScore() != null && info.getFinalScore() > maxFinalScore) {
-                                    maxFinalScore = info.getFinalScore();
-                                }
-                            }
-                            
-                            // 判断自己的最终得分是否为最高分
-                            int myFinalScore = (int) (matchScore * multiplier);
-                            if (myFinalScore >= maxFinalScore) {
-                                winMatches++;
-                                // 累加胜场得分
-                                winTotalScore += matchScore;
-                                winTotalMultiplierScore += matchScore * multiplier;
-                            } else {
-                                loseMatches++;
-                                // 累加负场得分
-                                loseTotalScore += matchScore;
-                                loseTotalMultiplierScore += matchScore * multiplier;
-                            }
-                        } else {
-                            // 如果没有JSON数据，跳过胜负判断
-                            logger.warn("对局{}的total_scores为空", match.getMatchId());
-                        }
-                    } catch (Exception e) {
-                        logger.warn("解析total_scores JSON失败", e);
-                        // 解析失败，跳过胜负判断
-                    }
+            if (month != null) {
+                Optional<UserMonthlyStats> monthlyOpt = userMonthlyStatsRepository.findByUserIdAndYearMonth(id, year * 100 + month);
+                if (monthlyOpt.isPresent()) {
+                    UserMonthlyStats ms = monthlyOpt.get();
+                    totalMatches = ms.getTotalMatches() != null ? ms.getTotalMatches() : 0;
+                    winMatches = ms.getWinMatches() != null ? ms.getWinMatches() : 0;
+                    loseMatches = ms.getLoseMatches() != null ? ms.getLoseMatches() : 0;
+                    totalScore = ms.getTotalScore() != null ? ms.getTotalScore() : 0;
+                    totalMultiplierScore = ms.getTotalMultiplierScore() != null ? ms.getTotalMultiplierScore() : 0.0;
+                    winTotalScore = ms.getWinTotalScore() != null ? ms.getWinTotalScore() : 0;
+                    winTotalMultiplierScore = ms.getWinTotalMultiplierScore() != null ? ms.getWinTotalMultiplierScore() : 0.0;
+                    loseTotalScore = ms.getLoseTotalScore() != null ? ms.getLoseTotalScore() : 0;
+                    loseTotalMultiplierScore = ms.getLoseTotalMultiplierScore() != null ? ms.getLoseTotalMultiplierScore() : 0.0;
                 } else {
-                    // 如果没有match_result记录，跳过胜负判断
-                    logger.warn("对局{}没有result记录", match.getMatchId());
+                    double[] out = aggregateFromUserMatchStats(myStats);
+                    totalMatches = (int) out[0]; winMatches = (int) out[1]; loseMatches = (int) out[2];
+                    totalScore = (int) out[3]; totalMultiplierScore = out[4];
+                    winTotalScore = (int) out[5]; winTotalMultiplierScore = out[6];
+                    loseTotalScore = (int) out[7]; loseTotalMultiplierScore = out[8];
                 }
+            } else {
+                double[] out = aggregateFromUserMatchStats(myStats);
+                totalMatches = (int) out[0]; winMatches = (int) out[1]; loseMatches = (int) out[2];
+                totalScore = (int) out[3]; totalMultiplierScore = out[4];
+                winTotalScore = (int) out[5]; winTotalMultiplierScore = out[6];
+                loseTotalScore = (int) out[7]; loseTotalMultiplierScore = out[8];
             }
 
-            logger.info("统计结果 - 总对局数：{}, 胜场：{}, 负场：{}, 总得分：{}, 总倍率分：{}", 
-                       totalMatches, winMatches, loseMatches, totalScore, totalMultiplierScore);
+            logger.info("统计结果 - 总对局数：{}, 胜场：{}, 负场：{}, 总得分：{}, 总倍率分：{}",
+                    totalMatches, winMatches, loseMatches, totalScore, totalMultiplierScore);
 
-            // 5. 计算该时间段内所有玩家的总得分，找出最高分和最低分玩家
-            Map<String, PlayerScoreInfo> allPlayersScores = new HashMap<>(); // key: wechatUserId
-            
-            // 查询该时间段内所有已完成的对局
-            List<Match> completedMatches = matchRepository.findCompletedMatchesByTimeRange(startTimestamp, endTimestamp);
-            logger.info("该时间段内已完成的对局数：{}", completedMatches.size());
-            
-            for (Match match : completedMatches) {
-                // 获取对局的倍率
-                Double multiplier = match.getSettlementMultiplier();
-                if (multiplier == null || multiplier <= 0) {
-                    multiplier = 1.0;
-                }
-                
-                // 获取该对局的所有参与者
-                List<MatchParticipant> matchParticipants = participantRepository.findByMatch(match);
-                
-                for (MatchParticipant mp : matchParticipants) {
-                    // 排除查询者自身
-                    if (mp.getUser() != null && mp.getUser().getId().equals(id)) {
-                        continue;
-                    }
-                    
-                    // 使用用户的 id 作为 key
-                    String userId = mp.getUser() != null ? mp.getUser().getId().toString() : null;
-                    if (userId == null) {
-                        continue;
-                    }
-                    
-                    int score = mp.getTotalScore() != null ? mp.getTotalScore() : 0;
-                    double multiplierScore = score * multiplier;
-                    
-                    // 累加该玩家的得分
-                    PlayerScoreInfo playerInfo = allPlayersScores.get(userId);
-                    if (playerInfo == null) {
-                        // 第一次遇到该玩家，创建记录
-                        playerInfo = new PlayerScoreInfo();
-                        playerInfo.setWechatUserId(userId);
-                        playerInfo.setNickname(mp.getUser() != null ? mp.getUser().getNickname() : null);
-                        playerInfo.setAvatar(mp.getUser() != null ? mp.getUser().getAvatar() : null);
-                        playerInfo.setTotalScore(score);
-                        playerInfo.setTotalMultiplierScore(multiplierScore);
-                        allPlayersScores.put(userId, playerInfo);
+            // 4. 最高/最低分玩家：该时间段内同局其他玩家的倍率分汇总
+            List<Long> matchIds = new ArrayList<>();
+            for (UserMatchStats s : myStats) {
+                matchIds.add(s.getMatchId());
+            }
+            Map<String, PlayerScoreInfo> allPlayersScores = new HashMap<>();
+            if (!matchIds.isEmpty()) {
+                List<UserMatchStats> allInRange = userMatchStatsRepository.findByMatchIdIn(matchIds);
+                for (UserMatchStats s : allInRange) {
+                    if (s.getUserId().equals(id)) continue;
+                    String uid = s.getUserId().toString();
+                    PlayerScoreInfo info = allPlayersScores.get(uid);
+                    if (info == null) {
+                        info = new PlayerScoreInfo();
+                        info.setWechatUserId(uid);
+                        WechatUser wu = wechatUserRepository.findById(s.getUserId()).orElse(null);
+                        info.setNickname(wu != null ? wu.getNickname() : null);
+                        info.setAvatar(wu != null ? wu.getAvatar() : null);
+                        info.setTotalScore(s.getTotalScore());
+                        info.setTotalMultiplierScore(s.getFinalScore() != null ? s.getFinalScore().doubleValue() : 0.0);
+                        allPlayersScores.put(uid, info);
                     } else {
-                        // 累加得分
-                        playerInfo.setTotalScore(playerInfo.getTotalScore() + score);
-                        playerInfo.setTotalMultiplierScore(playerInfo.getTotalMultiplierScore() + multiplierScore);
+                        info.setTotalScore((info.getTotalScore() != null ? info.getTotalScore() : 0) + (s.getTotalScore() != null ? s.getTotalScore() : 0));
+                        info.setTotalMultiplierScore((info.getTotalMultiplierScore() != null ? info.getTotalMultiplierScore() : 0.0) + (s.getFinalScore() != null ? s.getFinalScore().doubleValue() : 0.0));
                     }
                 }
             }
-            
-            logger.info("该时间段内参与对局的玩家数（排除查询者）：{}", allPlayersScores.size());
-            
-            // 找出最高分和最低分玩家
             PlayerScoreInfo highestPlayer = null;
             PlayerScoreInfo lowestPlayer = null;
-            
-            for (PlayerScoreInfo playerInfo : allPlayersScores.values()) {
-                if (highestPlayer == null || playerInfo.getTotalMultiplierScore() > highestPlayer.getTotalMultiplierScore()) {
-                    highestPlayer = playerInfo;
-                }
-                if (lowestPlayer == null || playerInfo.getTotalMultiplierScore() < lowestPlayer.getTotalMultiplierScore()) {
-                    lowestPlayer = playerInfo;
-                }
+            for (PlayerScoreInfo pi : allPlayersScores.values()) {
+                if (highestPlayer == null || (pi.getTotalMultiplierScore() != null && pi.getTotalMultiplierScore() > (highestPlayer.getTotalMultiplierScore() != null ? highestPlayer.getTotalMultiplierScore() : 0)))
+                    highestPlayer = pi;
+                if (lowestPlayer == null || (pi.getTotalMultiplierScore() != null && (lowestPlayer.getTotalMultiplierScore() == null || pi.getTotalMultiplierScore() < lowestPlayer.getTotalMultiplierScore())))
+                    lowestPlayer = pi;
             }
-            
-            // 6. 构建响应
+
+            // 5. 构建响应
             MonthlyStatisticsResponse response = new MonthlyStatisticsResponse();
             response.setWechatUserId(wechatUserId);
             response.setNickname(wechatUser.getNickname());
@@ -323,6 +237,28 @@ public class StatisticsServiceImpl implements StatisticsService {
             logger.error("计算月度统计失败", e);
             throw new RuntimeException("计算月度统计失败: " + e.getMessage(), e);
         }
+    }
+
+    /** out: [0]=totalMatches, [1]=winMatches, [2]=loseMatches, [3]=totalScore, [4]=totalMultiplierScore, [5]=winTotalScore, [6]=winTotalMultiplierScore, [7]=loseTotalScore, [8]=loseTotalMultiplierScore */
+    private static double[] aggregateFromUserMatchStats(List<UserMatchStats> myStats) {
+        double[] out = new double[9];
+        for (UserMatchStats s : myStats) {
+            out[0]++;
+            int ts = s.getTotalScore() != null ? s.getTotalScore() : 0;
+            int fs = s.getFinalScore() != null ? s.getFinalScore() : 0;
+            out[3] += ts;
+            out[4] += fs;
+            if (Boolean.TRUE.equals(s.getIsWinner())) {
+                out[1]++;
+                out[5] += ts;
+                out[6] += fs;
+            } else {
+                out[2]++;
+                out[7] += ts;
+                out[8] += fs;
+            }
+        }
+        return out;
     }
 }
 
