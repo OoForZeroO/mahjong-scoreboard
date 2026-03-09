@@ -26,7 +26,7 @@ public class StatisticsController {
     private StatisticsService statisticsService;
 
     /**
-     * 获取用户月度统计数据
+     * 获取用户月度统计数据（POST，请求体传 year/month）
      * 
      * @param wechatUserId 微信用户ID
      * @param request 请求体，包含year和month
@@ -50,6 +50,28 @@ public class StatisticsController {
         } catch (Exception e) {
             logger.error("获取月度统计失败", e);
             return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "获取月度统计失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取用户某月统计数据（GET，query 传 year、month），与 monthly 返回结构一致。
+     * 用于前端 GET /users/{id}/daily?year=2026&month=3 等调用。
+     */
+    @GetMapping("/users/{wechatUserId}/daily")
+    public ResponseEntity<Map<String, Object>> getDailyStatistics(
+            @PathVariable String wechatUserId,
+            @RequestParam Integer year,
+            @RequestParam(required = false) Integer month) {
+        try {
+            if (year == null) {
+                return buildErrorResponse(HttpStatus.BAD_REQUEST, "请求参数错误：year不能为空");
+            }
+            logger.info("获取用户统计(daily)，wechatUserId: {}, year: {}, month: {}", wechatUserId, year, month);
+            MonthlyStatisticsResponse statistics = statisticsService.getMonthlyStatistics(wechatUserId, year, month);
+            return ResponseEntity.ok(buildSuccessResponse(statistics));
+        } catch (Exception e) {
+            logger.error("获取统计(daily)失败", e);
+            return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "获取统计失败: " + e.getMessage());
         }
     }
 
