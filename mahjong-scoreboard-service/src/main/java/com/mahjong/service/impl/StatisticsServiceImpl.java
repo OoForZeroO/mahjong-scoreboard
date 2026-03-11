@@ -10,13 +10,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 
 /**
  * 统计服务实现
@@ -212,7 +215,7 @@ public class StatisticsServiceImpl implements StatisticsService {
                     lowestPlayer = pi;
             }
 
-            // 5. 构建响应
+            // 5. 构建响应（整体汇总）
             MonthlyStatisticsResponse response = new MonthlyStatisticsResponse();
             response.setWechatUserId(wechatUserId);
             response.setNickname(wechatUser.getNickname());
@@ -230,6 +233,17 @@ public class StatisticsServiceImpl implements StatisticsService {
             response.setLoseTotalMultiplierScore(loseTotalMultiplierScore);
             response.setHighestScorePlayer(highestPlayer);
             response.setLowestScorePlayer(lowestPlayer);
+
+            // 6. 附加明细列表
+            if (month != null) {
+                // 月度：附加按日汇总
+                response.setDailyStats(buildDailyStats(myStats));
+                response.setMonthlyStats(null);
+            } else {
+                // 年度：附加按月汇总
+                response.setMonthlyStats(buildMonthlyStatsFromUserMatchStats(myStats));
+                response.setDailyStats(null);
+            }
 
             return response;
 
@@ -260,5 +274,110 @@ public class StatisticsServiceImpl implements StatisticsService {
         }
         return out;
     }
-}
 
+    /**
+     * 构建按日汇总列表（用于某月查询）。
+     */
+    private List<MonthlyStatisticsResponse.DailyStats> buildDailyStats(List<UserMatchStats> myStats) {
+        Map<LocalDate, double[]> agg = new TreeMap<>();
+        for (UserMatchStats s : myStats) {
+            if (s.getMatchEndTime() == null) {
+                continue;
+            }
+            LocalDate day = Instant.ofEpochMilli(s.getMatchEndTime())
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+            double[] a = agg.computeIfAbsent(day, d -> new double[9]);
+            a[0]++; // totalMatches
+            int ts = s.getTotalScore() != null ? s.getTotalScore() : 0;
+            int fs = s.getFinalScore() != null ? s.getFinalScore() : 0;
+            a[3] += ts;
+            a[4] += fs;
+            if (Boolean.TRUE.equals(s.getIsWinner())) {
+                a[1]++;
+                a[5] += ts;
+                a[6] += fs;
+            } else {
+                a[2]++;
+                a[7] += ts;
+                a[8] += fs;
+            }
+        }
+
+        List<MonthlyStatisticsResponse.DailyStats> list = new ArrayList<>();
+        for (Map.Entry<LocalDate, double[]> e : agg.entrySet()) {
+            LocalDate day = e.getKey();
+            double[] a = e.getValue();
+            MonthlyStatisticsResponse.DailyStats dto = new MonthlyStatisticsResponse.DailyStats();
+            dto.setDate(day.toString());
+            dto.setTotalMatches((int) a[0]);
+            dto.setWinMatches((int) a[1]);
+            dto.setLoseMatches((int) a[2]);
+            dto.setTotalScore((int) a[3]);
+            dto.setTotalMultiplierScore(a[4]);
+            dto.setWinTotalScore((int) a[5]);
+            dto.setWinTotalMultiplierScore(a[6]);
+            dto.setLoseTotalScore((int) a[7]);
+            dto.setLoseTotalMultiplierScore(a[8]);
+            list.add(dto);
+        }
+        return list;
+    }
+
+    /**
+     * 构建按月汇总列表（用于某年查询，基于 user_match_stats 即算）。
+     */
+    private List<MonthlyStatisticsResponse.MonthlyStats> buildMonthlyStatsFromUserMatchStats(List<UserMatchStats> myStats) {
+        Map<Integer, double[]> agg = new HashMap<>();
+        for (UserMatchStats s : myStats) {
+            if (s.getMatchEndTime() == null) {
+                continue;
+            }
+            LocalDate day = Instant.ofEpochMilli(s.getMatchEndTime())
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+            int ym = day.getYear() * 100 + day.getMonthValue();
+            double[] a = agg.computeIfAbsent(ym, k -> new double[9]);
+            a[0]++; // totalMatches
+            int ts = s.getTotalScore() != null ? s.getTotalScore() : 0;
+            int fs = s.getFinalScore() != null ? s.getFinalScore() : 0;
+            a[3] += ts;
+            a[4] += fs;
+            if (Boolean.TRUE.equals(s.getIsWinner())) {
+                a[1]++;
+                a[5] += ts;
+                a[6] += fs;
+            } else {
+                a[2]++;
+                a[7] += ts;
+                a[8] += fs;
+            }
+        }
+
+        List<MonthlyStatisticsResponse.MonthlyStats> list = new ArrayList<>();
+        agg.entrySet().stream()
+                .sorted(Comparator.comparingInt(Map.Entry::getKey))
+                .forEach(e -> {
+                    int ym = e.getKey();
+                    double[] a = e.getValue();
+                    int year = ym / 100;
+                    int month = ym % 100;
+                    String ymStr = String.format("%04d-%02d", year, month);
+
+                    MonthlyStatisticsResponse.MonthlyStats dto = new MonthlyStatisticsResponse.MonthlyStats();
+                    dto.setYearMonth(ymStr);
+                    dto.setTotalMatches((int) a[0]);
+                    dto.setWinMatches((int) a[1]);
+                    dto.setLoseMatches((int) a[2]);
+                    dto.setTotalScore((int) a[3]);
+                    dto.setTotalMultiplierScore(a[4]);
+                    dto.setWinTotalScore((int) a[5]);
+                    dto.setWinTotalMultiplierScore(a[6]);
+                    dto.setLoseTotalScore((int) a[7]);
+                    dto.setLoseTotalMultiplierScore(a[8]);
+                    list.add(dto);
+                });
+
+        return list;
+    }
+}
