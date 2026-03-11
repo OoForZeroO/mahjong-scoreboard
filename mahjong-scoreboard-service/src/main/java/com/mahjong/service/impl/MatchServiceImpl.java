@@ -370,13 +370,17 @@ public class MatchServiceImpl implements MatchService {
                 // 如果createTime不存在，使用startTime作为备选
                 long totalDuration = completionTime - u.getStartTime();
                 r.setTotalDuration(totalDuration);
-                logger.info("计算总时长: {} ms (基于开始时间)", totalDuration);
+            logger.info("计算总时长: {} ms (基于开始时间)", totalDuration);
             } else {
                 logger.warn("无法计算总时长，createTime和startTime都为空");
             }
-            
-            // 不需要设置total_rounds字段
-            logger.info("跳过total_rounds字段设置");
+
+            // 收盘时根据轮次表重新计算 total_rounds，防止被错误覆盖为 0
+            Integer maxRound = rdao.findMaxRoundNumberByMatch(u);
+            if (maxRound != null && maxRound > 0) {
+                logger.info("收盘时刷新对局 {} 的 total_rounds 为 {}", id, maxRound);
+                u.setTotalRounds(maxRound);
+            }
             
             // 生成参与者得分信息的JSON数据
             logger.info("开始生成参与者得分信息JSON...");
@@ -532,9 +536,13 @@ public class MatchServiceImpl implements MatchService {
             } else {
                 logger.warn("无法计算总时长，createTime和startTime都为空");
             }
-            
-            // 不需要设置total_rounds字段
-            logger.info("跳过total_rounds字段设置");
+
+            // 收盘时根据轮次表重新计算 total_rounds，防止被错误覆盖为 0
+            Integer maxRound = rdao.findMaxRoundNumberByMatch(u);
+            if (maxRound != null && maxRound > 0) {
+                logger.info("收盘(带请求参数)时刷新对局 {} 的 total_rounds 为 {}", id, maxRound);
+                u.setTotalRounds(maxRound);
+            }
             
             // 生成参与者得分信息的JSON数据
             logger.info("开始生成参与者得分信息JSON...");
