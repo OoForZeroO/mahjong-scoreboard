@@ -2,6 +2,7 @@ package com.mahjong.controller;
 
 import com.mahjong.model.Room;
 import com.mahjong.service.RoomService;
+import com.mahjong.dto.RoomNearbyItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,19 @@ public class RoomController {
     public ResponseEntity<List<Room>> getAllRooms() {
         List<Room> rooms = roomService.getAllRooms();
         return ResponseEntity.ok(rooms);
+    }
+
+    /**
+     * 按当前坐标搜索附近门店，用于输入框下拉选择。
+     * 参数：latitude 纬度（必填）, longitude 经度（必填）, radius 半径公里（可选，不传则不限制距离，仅按距离排序）
+     */
+    @GetMapping("/nearby")
+    public ResponseEntity<List<RoomNearbyItem>> getNearbyRooms(
+            @RequestParam Double latitude,
+            @RequestParam Double longitude,
+            @RequestParam(required = false) Double radius) {
+        List<RoomNearbyItem> list = roomService.findNearby(latitude, longitude, radius);
+        return ResponseEntity.ok(list);
     }
 
     // 根据ID获取棋牌室

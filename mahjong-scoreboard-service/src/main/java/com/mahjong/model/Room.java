@@ -14,6 +14,14 @@ public class Room {
     @Column(length = 500)
     private String logo;
 
+    /** 纬度，用于附近门店搜索 */
+    @Column
+    private Double latitude;
+
+    /** 经度，用于附近门店搜索 */
+    @Column
+    private Double longitude;
+
     @Column(updatable = false)
     private Long createTime;
 
@@ -70,5 +78,21 @@ public class Room {
 
     public void setUpdateTime(Long updateTime) {
         this.updateTime = updateTime;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 }
