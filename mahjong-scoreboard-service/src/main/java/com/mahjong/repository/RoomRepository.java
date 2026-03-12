@@ -13,4 +13,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     /** 查询所有已填写经纬度的门店（用于附近搜索） */
     List<Room> findByLatitudeIsNotNullAndLongitudeIsNotNull();
+
+    /** 按第三方 POI 唯一标识查询，用于同步去重 */
+    Optional<Room> findByExternalId(String externalId);
 }

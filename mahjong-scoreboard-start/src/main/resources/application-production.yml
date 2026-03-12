@@ -64,3 +64,8 @@ app:
     avatar-url-prefix: ${UPLOAD_AVATAR_URL_PREFIX:https://yaohufox.com/static/avatar}
     avatar-max-size: ${UPLOAD_AVATAR_MAX_SIZE:2097152}
 
+# 高德地图 Web 服务 API Key（棋牌室 POI 同步，可选；也可用环境变量 AMAP_API_KEY）
+amap:
+  api:
+    key: ${AMAP_API_KEY:}
+

@@ -22,6 +22,14 @@ public class Room {
     @Column
     private Double longitude;
 
+    /** 详细地址（可从高德 POI 同步） */
+    @Column(length = 500)
+    private String address;
+
+    /** 第三方 POI 唯一标识（如高德 id），用于去重、避免重复落库 */
+    @Column(name = "external_id", length = 64, unique = true)
+    private String externalId;
+
     @Column(updatable = false)
     private Long createTime;
 
@@ -94,5 +102,21 @@ public class Room {
 
     public void setLongitude(Double longitude) {
         this.longitude = longitude;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getExternalId() {
+        return externalId;
+    }
+
+    public void setExternalId(String externalId) {
+        this.externalId = externalId;
     }
 }
