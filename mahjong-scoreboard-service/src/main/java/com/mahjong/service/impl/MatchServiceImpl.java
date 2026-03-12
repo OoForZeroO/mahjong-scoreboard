@@ -277,19 +277,14 @@ public class MatchServiceImpl implements MatchService {
             if (m.getRoomName() != null) {
                 u.setRoomName(m.getRoomName());
             }
-            if (m.getStatus() != null) {
-                u.setStatus(m.getStatus());
-            }
+            // 仅允许更新房间名、轮数、结算倍率；不通过本接口修改对局状态与结束时间，避免「修改棋牌室」时误改 status/endTime
+            // 对局状态与结束时间请使用 PUT /matches/{id}/end 或 PUT /matches/{id}/end-details
             if (m.getTotalRounds() != null) {
                 u.setTotalRounds(m.getTotalRounds());
             }
             if (m.getSettlementMultiplier() != null) {
                 u.setSettlementMultiplier(m.getSettlementMultiplier());
             }
-            if (Integer.valueOf(1).equals(m.getStatus()) && u.getEndTime() == null) {
-                u.setEndTime(System.currentTimeMillis());
-            }
-            
             return dao.save(u);
         }
         return null;
