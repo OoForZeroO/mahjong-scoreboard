@@ -236,9 +236,9 @@ public class StatisticsServiceImpl implements StatisticsService {
 
             // 6. 附加明细列表
             if (month != null) {
-                // 月度：附加按日汇总
+                // 月度：附加按日汇总 + 当前月份的月度汇总（便于前端统一使用 monthlyStats）
                 response.setDailyStats(buildDailyStats(myStats));
-                response.setMonthlyStats(null);
+                response.setMonthlyStats(buildMonthlyStatsFromUserMatchStats(myStats));
             } else {
                 // 年度：附加按月汇总
                 response.setMonthlyStats(buildMonthlyStatsFromUserMatchStats(myStats));
