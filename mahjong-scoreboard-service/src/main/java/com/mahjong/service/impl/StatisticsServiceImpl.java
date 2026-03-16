@@ -321,6 +321,8 @@ public class StatisticsServiceImpl implements StatisticsService {
             dto.setLoseTotalMultiplierScore(a[8]);
             list.add(dto);
         }
+        // 保证按日期正序（1-31 号）返回
+        list.sort(Comparator.comparing(MonthlyStatisticsResponse.DailyStats::getDate, Comparator.naturalOrder()));
         return list;
     }
 
@@ -378,6 +380,8 @@ public class StatisticsServiceImpl implements StatisticsService {
                     list.add(dto);
                 });
 
+        // 保证按 1-12 月顺序排列（yearMonth 格式 YYYY-MM，自然序即 2026-01..2026-12）
+        list.sort(Comparator.comparing(MonthlyStatisticsResponse.MonthlyStats::getYearMonth, Comparator.naturalOrder()));
         return list;
     }
 }
