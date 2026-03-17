@@ -54,6 +54,12 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- 仅用于密码加密的 Spring Security Crypto，不启用 Web 安全过滤器 -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <!-- Lombok - 暂时注释掉以解决构建问题 -->
         <!--
         <dependency>
