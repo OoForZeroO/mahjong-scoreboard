@@ -42,7 +42,7 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
     @Value("${wechat.qrcode.checkPath:false}")
     private Boolean checkPath;
 
-    @Value("${wechat.qrcode.envVersion:trial}")
+    @Value("${wechat.qrcode.envVersion:release}")
     private String envVersion;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -86,8 +86,8 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
         requestBody.put("page", qrcodePage);
         requestBody.put("width", qrcodeWidth);
         requestBody.put("check_path", checkPath);
-        // 未传 env_version 时微信生成正式版，未发布会提示「尚未发布」；空值时兜底为 trial
-        String effectiveEnvVersion = (envVersion != null && !envVersion.isEmpty()) ? envVersion : "trial";
+        // 未传 env_version 时默认按正式版处理；空值兜底为 release，避免误生成体验版
+        String effectiveEnvVersion = (envVersion != null && !envVersion.isEmpty()) ? envVersion : "release";
         requestBody.put("env_version", effectiveEnvVersion);
         logger.info("生成小程序码，env_version={}（trial=体验版 release=正式版），matchId={}", effectiveEnvVersion, matchId);
 
