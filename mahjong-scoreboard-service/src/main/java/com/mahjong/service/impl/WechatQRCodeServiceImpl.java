@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -44,6 +46,9 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
 
     @Value("${wechat.qrcode.envVersion:release}")
     private String envVersion;
+
+    @Autowired
+    private Environment environment;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -86,8 +91,8 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
         requestBody.put("page", qrcodePage);
         requestBody.put("width", qrcodeWidth);
         requestBody.put("check_path", checkPath);
-        // 未传 env_version 时默认按正式版处理；空值兜底为 release，避免误生成体验版
-        String effectiveEnvVersion = (envVersion != null && !envVersion.isEmpty()) ? envVersion : "release";
+        // 生产环境固定正式版。体验版码会让未加入体验的人停在微信的「申请体验」，进不了授权。
+        String effectiveEnvVersion = resolveEnvVersion();
         requestBody.put("env_version", effectiveEnvVersion);
         logger.info("生成小程序码，env_version={}（trial=体验版 release=正式版），matchId={}", effectiveEnvVersion, matchId);
 
@@ -140,6 +145,20 @@ public class WechatQRCodeServiceImpl implements WechatQRCodeService {
         } catch (Exception e) {
             throw new RuntimeException("生成二维码失败: " + e.getMessage(), e);
         }
+    }
+
+    private String resolveEnvVersion() {
+        if (environment != null) {
+            for (String profile : environment.getActiveProfiles()) {
+                if ("production".equalsIgnoreCase(profile)) {
+                    return "release";
+                }
+            }
+        }
+        if (envVersion == null || envVersion.isEmpty()) {
+            return "release";
+        }
+        return envVersion;
     }
 
     private int parseErrcode(String jsonStr) {
