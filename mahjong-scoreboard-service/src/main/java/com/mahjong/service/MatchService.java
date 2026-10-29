@@ -23,6 +23,7 @@ public interface MatchService {
     Match endMatch(Long matchId);
     Match endMatch(Long matchId, EndMatchRequest request);
     void deleteMatch(Long matchId);
+    void hideMatchForUser(Long matchId, String wechatUserId);
     
     // 参与者相关方法
     MatchParticipant addParticipant(Long matchId, MatchParticipant participant);

@@ -16,9 +16,12 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -37,6 +40,9 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Autowired
     private UserMonthlyStatsRepository userMonthlyStatsRepository;
+
+    @Autowired
+    private UserHiddenMatchRepository userHiddenMatchRepository;
 
     @Override
     public MonthlyStatisticsResponse getMonthlyStatistics(String wechatUserId, Integer year, Integer month) {
@@ -133,10 +139,16 @@ public class StatisticsServiceImpl implements StatisticsService {
                 logger.info("查询全年统计，时间范围：{} - {}", startTimestamp, endTimestamp);
             }
 
-            // 3. 从 user_match_stats 按时间范围查询（或单月时优先从 user_monthly_stats 取）
-            List<UserMatchStats> myStats = userMatchStatsRepository.findByUserIdAndMatchEndTimeBetweenOrderByMatchEndTimeAsc(
-                    id, startTimestamp, endTimestamp);
-            logger.info("user_match_stats 记录数：{}", myStats.size());
+            // 3. 从 user_match_stats 按时间范围查询。本人隐藏的对局不计入自己的统计，原始汇总行保留。
+            List<UserMatchStats> myStats = new ArrayList<>(userMatchStatsRepository.findByUserIdAndMatchEndTimeBetweenOrderByMatchEndTimeAsc(
+                    id, startTimestamp, endTimestamp));
+            Set<Long> hiddenIds = hiddenMatchIds(wechatUserId, id, wechatUser);
+            int rawCount = myStats.size();
+            if (!hiddenIds.isEmpty()) {
+                myStats.removeIf(s -> s.getMatchId() != null && hiddenIds.contains(s.getMatchId()));
+            }
+            boolean excludedHidden = myStats.size() != rawCount;
+            logger.info("user_match_stats 记录数：{}，隐藏后：{}", rawCount, myStats.size());
 
             int totalMatches;
             int winMatches;
@@ -148,7 +160,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             int loseTotalScore;
             double loseTotalMultiplierScore;
 
-            if (month != null) {
+            if (month != null && !excludedHidden) {
                 Optional<UserMonthlyStats> monthlyOpt = userMonthlyStatsRepository.findByUserIdAndYearMonth(id, year * 100 + month);
                 if (monthlyOpt.isPresent()) {
                     UserMonthlyStats ms = monthlyOpt.get();
@@ -251,6 +263,22 @@ public class StatisticsServiceImpl implements StatisticsService {
             logger.error("计算月度统计失败", e);
             throw new RuntimeException("计算月度统计失败: " + e.getMessage(), e);
         }
+    }
+
+    private Set<Long> hiddenMatchIds(String wechatUserId, Long id, WechatUser wechatUser) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (wechatUserId != null && !wechatUserId.trim().isEmpty()) keys.add(wechatUserId.trim());
+        if (id != null) keys.add(id.toString());
+        if (wechatUser != null && wechatUser.getUserId() != null && !wechatUser.getUserId().trim().isEmpty()) {
+            keys.add(wechatUser.getUserId().trim());
+        }
+        Set<Long> ids = new HashSet<>();
+        for (String key : keys) {
+            for (UserHiddenMatch row : userHiddenMatchRepository.findByUserKey(key)) {
+                if (row.getMatchId() != null) ids.add(row.getMatchId());
+            }
+        }
+        return ids;
     }
 
     /** out: [0]=totalMatches, [1]=winMatches, [2]=loseMatches, [3]=totalScore, [4]=totalMultiplierScore, [5]=winTotalScore, [6]=winTotalMultiplierScore, [7]=loseTotalScore, [8]=loseTotalMultiplierScore */

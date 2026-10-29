@@ -163,6 +163,21 @@ public class MatchController {
         }
     }
 
+    @PostMapping("/{matchId}/hide")
+    public ResponseEntity<Map<String, Object>> hideMatch(
+            @PathVariable Long matchId,
+            @RequestParam("wechat_user_id") String wechatUserId) {
+        try {
+            matchService.hideMatchForUser(matchId, wechatUserId);
+            return ResponseEntity.ok(buildSuccessResponse(null));
+        } catch (IllegalArgumentException e) {
+            return buildErrorResponse(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            logger.error("隐藏对局失败", e);
+            return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "隐藏对局失败: " + e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{matchId}")
     public ResponseEntity<Map<String, Object>> deleteMatch(@PathVariable Long matchId) {
         try {

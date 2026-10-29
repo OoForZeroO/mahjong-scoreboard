@@ -5,6 +5,8 @@ import com.mahjong.repository.MatchRepository;
 import com.mahjong.repository.MatchParticipantRepository;
 import com.mahjong.repository.RoundScoreRepository;
 import com.mahjong.repository.MatchResultRepository;
+import com.mahjong.repository.UserHiddenMatchRepository;
+import com.mahjong.model.UserHiddenMatch;
 import com.mahjong.repository.UserMatchStatsRepository;
 import com.mahjong.repository.UserMonthlyStatsRepository;
 import com.mahjong.repository.UserRepository;
@@ -43,6 +45,9 @@ public class MatchServiceImpl implements MatchService {
 
     @Autowired
     private MatchResultRepository mdao;
+
+    @Autowired
+    private UserHiddenMatchRepository hiddenMatchRepository;
 
     @Autowired
     private UserMatchStatsRepository userMatchStatsRepository;
@@ -716,35 +721,32 @@ public class MatchServiceImpl implements MatchService {
         Match match = matchOpt.get();
         Integer matchStatus = match.getStatus();
         
-        // 1. 先删除轮次得分记录（因为轮次得分依赖参与者）
+        // 1. 先删除轮次得分（引用参与者）
         List<RoundScore> roundScores = rdao.findByMatchOrderByRoundNumberAsc(match);
         if (!roundScores.isEmpty()) {
             rdao.deleteAll(roundScores);
+            rdao.flush();
         }
-        
-        // 2. 删除参与者记录
+
+        // 结算结果的 winner_id 引用参与者。先把外键清空并删掉结果行，再删参与者。
+        Optional<MatchResult> resultOpt = mdao.findByMatchId(id);
+        if (resultOpt.isPresent()) {
+            MatchResult result = resultOpt.get();
+            result.setWinner(null);
+            mdao.saveAndFlush(result);
+            mdao.delete(result);
+            mdao.flush();
+            logger.info("Deleted match results for matchId: {} status: {}", id, matchStatus);
+        } else {
+            mdao.deleteByMatchId(id);
+            mdao.flush();
+        }
+
+        // 3. 删除参与者
         List<MatchParticipant> participants = pdao.findByMatch(match);
         if (!participants.isEmpty()) {
             pdao.deleteAll(participants);
-        }
-        
-        // 3. 根据对局状态决定是否删除对局结果记录
-        if ("已完成".equals(matchStatus)) {
-            // 只有已完成的对局才需要删除对局结果记录
-            try {
-                Optional<MatchResult> resultOpt = mdao.findByMatchId(id);
-                if (resultOpt.isPresent()) {
-                    // 直接删除记录，避免查询不存在的字段
-                    mdao.deleteById(resultOpt.get().getMatchId());
-                    logger.info("Deleted match results for completed matchId: {}", id);
-                }
-            } catch (Exception e) {
-                // 忽略删除对局结果时的错误
-                logger.warn("Failed to delete match results for completed matchId: {}", id, e);
-            }
-        } else {
-            // 进行中的对局不需要删除对局结果记录（因为还没有创建）
-            logger.info("Skipping match results deletion for ongoing matchId: {} with status: {}", id, matchStatus);
+            pdao.flush();
         }
         
         // 若为已完成对局，先按 user_match_stats 回滚 user_monthly_stats，再删对局（CASCADE 会删 user_match_stats）
@@ -767,6 +769,36 @@ public class MatchServiceImpl implements MatchService {
         // 5. 最后删除对局记录
         dao.deleteById(id);
         logger.info("Successfully deleted match with ID: {}", id);
+    }
+
+    @Override
+    @Transactional
+    public void hideMatchForUser(Long matchId, String wechatUserId) {
+        if (wechatUserId == null || wechatUserId.trim().isEmpty()) {
+            throw new IllegalArgumentException("缺少用户");
+        }
+        String userKey = wechatUserId.trim();
+        Match match = dao.findById(matchId).orElseThrow(() -> new IllegalArgumentException("对局不存在"));
+        List<MatchParticipant> participants = pdao.findByMatch(match);
+        boolean joined = participants.stream().anyMatch(p -> sameViewer(p, userKey));
+        if (!joined) {
+            throw new IllegalArgumentException("你不在这场对局中");
+        }
+        if (hiddenMatchRepository.existsByUserKeyAndMatchId(userKey, matchId)) {
+            return;
+        }
+        UserHiddenMatch row = new UserHiddenMatch();
+        row.setUserKey(userKey);
+        row.setMatchId(matchId);
+        hiddenMatchRepository.save(row);
+    }
+
+    private boolean sameViewer(MatchParticipant participant, String userKey) {
+        if (participant == null || userKey == null) return false;
+        if (userKey.equals(participant.getWechatUserId())) return true;
+        return participant.getUser() != null
+            && participant.getUser().getId() != null
+            && userKey.equals(participant.getUser().getId().toString());
     }
 
     // 参与者相关方法
@@ -1491,8 +1523,17 @@ public class MatchServiceImpl implements MatchService {
         // 按创建时间倒序排序，最新的在最前面
         List<Match> matches = dao.findByStatusOrderByCreateTimeDesc(status);
         List<MatchStatusQueryResponse> responses = new ArrayList<>();
+        java.util.Set<Long> hiddenIds = java.util.Collections.emptySet();
+        if (wechatUserId != null && !wechatUserId.trim().isEmpty()) {
+            hiddenIds = hiddenMatchRepository.findByUserKey(wechatUserId.trim()).stream()
+                .map(UserHiddenMatch::getMatchId)
+                .collect(java.util.stream.Collectors.toSet());
+        }
         
         for (Match match : matches) {
+            if (hiddenIds.contains(match.getMatchId())) {
+                continue;
+            }
             MatchStatusQueryResponse response = new MatchStatusQueryResponse();
             
             // 设置对局基本信息
