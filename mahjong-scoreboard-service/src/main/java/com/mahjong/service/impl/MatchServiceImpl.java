@@ -250,6 +250,33 @@ public class MatchServiceImpl implements MatchService {
         }
     }
 
+    // 用户号必须能在当前库找到。找不到就拒绝，避免把别的环境的号写进对局。
+    private void bindKnownWechatUser(MatchParticipant participant, String wechatUserIdKey) {
+        WechatUser wechatUser = resolveWechatUser(wechatUserIdKey);
+        if (wechatUser == null) {
+            throw new IllegalArgumentException("当前环境没有这个用户，请重新登录");
+        }
+        participant.setUser(wechatUser);
+        participant.setWechatUserId(wechatUser.getId().toString());
+        if (isAnonymousName(participant.getUserName()) && !isAnonymousName(wechatUser.getNickname())) {
+            participant.setUserName(wechatUser.getNickname());
+        }
+        if (isAnonymousAvatar(participant.getAvatar()) && wechatUser.getAvatar() != null && !wechatUser.getAvatar().trim().isEmpty()) {
+            participant.setAvatar(wechatUser.getAvatar());
+        }
+    }
+
+    private boolean isAnonymousName(String name) {
+        if (name == null) return true;
+        String text = name.trim();
+        return text.isEmpty() || "微信用户".equals(text) || "发起者".equals(text);
+    }
+
+    private boolean isAnonymousAvatar(String url) {
+        if (url == null || url.trim().isEmpty()) return true;
+        return url.contains("POgEwh4m") || url.contains("default-avatar");
+    }
+
     /**
      * 从 WechatUser 与 MatchParticipant 中选取头像（优先 wechat_users，再 participant.user，再 participant.avatar）。
      * 返回非空字符串或 null（调用方可用 "" 作为兜底以便接口始终返回头像字段）。
@@ -801,6 +828,25 @@ public class MatchServiceImpl implements MatchService {
             && userKey.equals(participant.getUser().getId().toString());
     }
 
+    // 一场只保留一条台板。并发创建时先锁对局行，已有则直接返回，不再插入。
+    private MatchParticipant saveOneParticipant(Match match, MatchParticipant participant) {
+        if (participant != null && "台板".equals(participant.getUserName())) {
+            dao.findByMatchIdForUpdate(match.getMatchId());
+            List<MatchParticipant> existing = pdao.findByMatchAndUserName(match, "台板");
+            if (!existing.isEmpty()) {
+                MatchParticipant kept = existing.get(0);
+                for (MatchParticipant row : existing) {
+                    if (row.getId() != null && (kept.getId() == null || row.getId() < kept.getId())) {
+                        kept = row;
+                    }
+                }
+                logger.info("Match {} already has 台板 {}, skip creating another", match.getMatchId(), kept.getId());
+                return kept;
+            }
+        }
+        return pdao.save(participant);
+    }
+
     // 参与者相关方法
     @Override
     @Transactional
@@ -844,13 +890,7 @@ public class MatchServiceImpl implements MatchService {
                 wechatUserIdKey = p.getUser().getUserId().trim();
             }
             if (wechatUserIdKey != null) {
-                WechatUser wechatUser = resolveWechatUser(wechatUserIdKey);
-                if (wechatUser != null) {
-                    p.setUser(wechatUser);
-                    p.setWechatUserId(wechatUser.getId().toString());
-                } else {
-                    p.setWechatUserId(wechatUserIdKey);
-                }
+                bindKnownWechatUser(p, wechatUserIdKey);
             }
             
             // 唯一约束 (match_id, user_id/wechat_user_id)：若用户已在对局中，直接返回已有参与者，避免重复插入
@@ -871,7 +911,7 @@ public class MatchServiceImpl implements MatchService {
                 }
             }
             
-            MatchParticipant saved = pdao.save(p);
+            MatchParticipant saved = saveOneParticipant(m, p);
             
             logger.info("Created participant {} in match {} with wechat_user_id: {}, total score: {}", 
                        saved.getId(), id, saved.getWechatUserId(), saved.getTotalScore());
@@ -1019,7 +1059,11 @@ public class MatchServiceImpl implements MatchService {
             }
             
             participant.setMatch(match);
-            MatchParticipant saved = pdao.save(participant);
+            String batchUserKey = participant.getWechatUserId();
+            if (batchUserKey != null && !batchUserKey.trim().isEmpty()) {
+                bindKnownWechatUser(participant, batchUserKey);
+            }
+            MatchParticipant saved = saveOneParticipant(match, participant);
             savedParticipants.add(saved);
             
             logger.info("Created participant {} in match {} with wechat_user_id: {}, total score: {}", 

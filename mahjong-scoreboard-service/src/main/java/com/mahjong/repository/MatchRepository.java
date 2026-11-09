@@ -1,17 +1,24 @@
 package com.mahjong.repository;
 
 import com.mahjong.model.Match;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findByStatus(Integer status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM Match m WHERE m.matchId = :matchId")
+    Optional<Match> findByMatchIdForUpdate(@Param("matchId") Long matchId);
     List<Match> findByStatusOrderByCreateTimeDesc(Integer status);
     List<Match> findByStartTimeGreaterThanEqual(Long startTime);
     
